@@ -33,6 +33,18 @@ the model, the file, the key and the emoji recents. Password fields and
 `IME_FLAG_NO_PERSONALIZED_LEARNING` fields are never learned from; password
 fields get no suggestions. Backup and device transfer are excluded.
 
+## Known gaps
+
+- **SwiftKey import via root** is not built — its learned-model format was not
+  available to test against. *Import words* takes a plain word list.
+- **German noun case** is partly data-limited: the source text is lowercase and
+  hunspell's flags cannot always tell a noun from a nominalized adjective, so a
+  few words (`mädchen` before `Mädchen`) rank in the wrong case until typing
+  teaches them.
+- **Not verified on a real device yet:** voice hand-off, SMS one-time codes
+  surfacing with a third-party IME, the ClipX buttons, and whether the fast-typing
+  fixes cure the jam seen on the phone (the emulator could not reproduce it).
+
 ## Layout of the code
 
 | | |
