@@ -1,0 +1,19 @@
+{
+ "id": "trellis",
+ "name": "Trellis",
+ "keyboardBackground": "#0F1117",
+ "stripBackground": "#1D1F2A",
+ "keyFace": "#171922",
+ "keyBorder": "#3C3E4C",
+ "keyPressed": "#312E81",
+ "keyText": "#E4E4EC",
+ "hintText": "#AAC6C5D4",
+ "functionText": "#A5B4FC",
+ "candidateText": "#C6C5D4",
+ "candidateHighlight": "#A5B4FC",
+ "divider": "#3C3E4C",
+ "popupBackground": "#2A2C39",
+ "popupBorder": "#A5B4FC",
+ "gestureTrail": "#99A5B4FC",
+ "accent": "#A5B4FC"
+}

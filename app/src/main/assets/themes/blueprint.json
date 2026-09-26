@@ -1,0 +1,19 @@
+{
+ "id": "blueprint",
+ "name": "Blueprint",
+ "keyboardBackground": "#0B2A43",
+ "stripBackground": "#0F3350",
+ "keyFace": "#113857",
+ "keyBorder": "#4A86B4",
+ "keyPressed": "#164A72",
+ "keyText": "#DCEFFF",
+ "hintText": "#AAA9CFE8",
+ "functionText": "#7DC3F0",
+ "candidateText": "#A9CFE8",
+ "candidateHighlight": "#7DC3F0",
+ "divider": "#4A86B4",
+ "popupBackground": "#154266",
+ "popupBorder": "#7DC3F0",
+ "gestureTrail": "#997DC3F0",
+ "accent": "#7DC3F0"
+}

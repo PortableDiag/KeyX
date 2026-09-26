@@ -1,0 +1,20 @@
+{
+ "id": "sticky_notes",
+ "name": "Sticky Notes",
+ "keyboardBackground": "#9C7C4C",
+ "stripBackground": "#FBE79A",
+ "keyFace": "#FFE96B",
+ "keyBorder": "#C9A94A",
+ "keyPressed": "#FFE08A",
+ "keyText": "#392B10",
+ "hintText": "#AA4A3A1A",
+ "functionText": "#8A5300",
+ "candidateText": "#4A3A1A",
+ "candidateHighlight": "#8A5300",
+ "divider": "#C9A94A",
+ "popupBackground": "#FFF3C2",
+ "popupBorder": "#8A5300",
+ "gestureTrail": "#998A5300",
+ "accent": "#8A5300",
+ "appBackground": "#FFF3C2"
+}

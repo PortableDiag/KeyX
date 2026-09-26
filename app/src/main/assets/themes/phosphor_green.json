@@ -1,0 +1,19 @@
+{
+ "id": "phosphor_green",
+ "name": "Phosphor Green",
+ "keyboardBackground": "#001700",
+ "stripBackground": "#050A05",
+ "keyFace": "#00000000",
+ "keyBorder": "#1A351A",
+ "keyPressed": "#0F280F",
+ "keyText": "#00FF0F",
+ "hintText": "#9900E100",
+ "functionText": "#1E8E0E",
+ "candidateText": "#2EAE14",
+ "candidateHighlight": "#75FF02",
+ "divider": "#0F280F",
+ "popupBackground": "#021F02",
+ "popupBorder": "#1E8E0E",
+ "gestureTrail": "#9900FF0F",
+ "accent": "#00FF0F"
+}

@@ -1,0 +1,19 @@
+{
+ "id": "silkscreen",
+ "name": "Silkscreen",
+ "keyboardBackground": "#061F15",
+ "stripBackground": "#08281A",
+ "keyFace": "#0A2E1E",
+ "keyBorder": "#8F6F22",
+ "keyPressed": "#5C4610",
+ "keyText": "#F2F4EF",
+ "hintText": "#AAB9C6BD",
+ "functionText": "#D9A82B",
+ "candidateText": "#B9C6BD",
+ "candidateHighlight": "#D9A82B",
+ "divider": "#8F6F22",
+ "popupBackground": "#0E3A27",
+ "popupBorder": "#D9A82B",
+ "gestureTrail": "#99D9A82B",
+ "accent": "#D9A82B"
+}

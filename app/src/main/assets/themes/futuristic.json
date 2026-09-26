@@ -1,0 +1,19 @@
+{
+ "id": "futuristic",
+ "name": "Futuristic",
+ "keyboardBackground": "#030A12",
+ "stripBackground": "#0D2634",
+ "keyFace": "#0B2230",
+ "keyBorder": "#35A6CC",
+ "keyPressed": "#0A4E62",
+ "keyText": "#E2FBFF",
+ "hintText": "#AAAEDCEE",
+ "functionText": "#4DE4FF",
+ "candidateText": "#AEDCEE",
+ "candidateHighlight": "#4DE4FF",
+ "divider": "#35A6CC",
+ "popupBackground": "#123040",
+ "popupBorder": "#4DE4FF",
+ "gestureTrail": "#994DE4FF",
+ "accent": "#4DE4FF"
+}

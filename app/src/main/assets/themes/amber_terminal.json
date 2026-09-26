@@ -1,0 +1,19 @@
+{
+ "id": "amber_terminal",
+ "name": "Amber Terminal",
+ "keyboardBackground": "#120A00",
+ "stripBackground": "#0A0600",
+ "keyFace": "#00000000",
+ "keyBorder": "#3A2600",
+ "keyPressed": "#2A1B00",
+ "keyText": "#FFB000",
+ "hintText": "#99E09A00",
+ "functionText": "#B07800",
+ "candidateText": "#C68A00",
+ "candidateHighlight": "#FFD060",
+ "divider": "#2A1B00",
+ "popupBackground": "#1E1300",
+ "popupBorder": "#B07800",
+ "gestureTrail": "#99FFB000",
+ "accent": "#FFB000"
+}

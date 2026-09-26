@@ -1,0 +1,19 @@
+{
+ "id": "ocean",
+ "name": "Ocean",
+ "keyboardBackground": "#0E1014",
+ "stripBackground": "#1D2026",
+ "keyFace": "#16181D",
+ "keyBorder": "#3A3E46",
+ "keyPressed": "#274777",
+ "keyText": "#E3E5EA",
+ "hintText": "#AAC4C6D0",
+ "functionText": "#AEC6FF",
+ "candidateText": "#C4C6D0",
+ "candidateHighlight": "#AEC6FF",
+ "divider": "#3A3E46",
+ "popupBackground": "#262A33",
+ "popupBorder": "#AEC6FF",
+ "gestureTrail": "#99AEC6FF",
+ "accent": "#AEC6FF"
+}

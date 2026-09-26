@@ -1,0 +1,19 @@
+{
+ "id": "synthwave",
+ "name": "SynthWave",
+ "keyboardBackground": "#08060D",
+ "stripBackground": "#100D18",
+ "keyFace": "#15121E",
+ "keyBorder": "#453A52",
+ "keyPressed": "#5A1138",
+ "keyText": "#E8E6EE",
+ "hintText": "#AA9F92B3",
+ "functionText": "#FF3B6B",
+ "candidateText": "#9F92B3",
+ "candidateHighlight": "#2DE6F0",
+ "divider": "#453A52",
+ "popupBackground": "#221D2E",
+ "popupBorder": "#FF3B6B",
+ "gestureTrail": "#99FF3B6B",
+ "accent": "#FF3B6B"
+}

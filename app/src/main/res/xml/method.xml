@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Languages are KeyX's own (Settings -> Languages, switched by flicking the
+     space bar), so no system subtypes are declared here. -->
+<input-method xmlns:android="http://schemas.android.com/apk/res/android"
+    android:settingsActivity="com.keyx.app.MainActivity"
+    android:supportsSwitchingToNextInputMethod="true" />

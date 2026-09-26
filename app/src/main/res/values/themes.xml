@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- A platform theme, so the template pulls in no appcompat dependency it
-         does not use. Compose draws everything above this. -->
-    <style name="Theme.keyx" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- A platform theme, so the app pulls in no appcompat dependency it does
+         not use. Compose draws everything above this; the window background
+         matches the keyboard so there is no white flash on launch. -->
+    <style name="Theme.keyx" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/ic_launcher_background</item>
+        <item name="android:statusBarColor">@color/ic_launcher_background</item>
+        <item name="android:navigationBarColor">@color/ic_launcher_background</item>
+    </style>
 </resources>

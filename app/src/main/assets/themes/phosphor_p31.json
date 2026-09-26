@@ -1,0 +1,19 @@
+{
+ "id": "phosphor_p31",
+ "name": "Phosphor P31",
+ "keyboardBackground": "#020A09",
+ "stripBackground": "#04100E",
+ "keyFace": "#051411",
+ "keyBorder": "#3FA892",
+ "keyPressed": "#0F382F",
+ "keyText": "#7AF7D4",
+ "hintText": "#AA3FA892",
+ "functionText": "#7AF7D4",
+ "candidateText": "#3FA892",
+ "candidateHighlight": "#7AF7D4",
+ "divider": "#3FA892",
+ "popupBackground": "#071C18",
+ "popupBorder": "#7AF7D4",
+ "gestureTrail": "#997AF7D4",
+ "accent": "#7AF7D4"
+}

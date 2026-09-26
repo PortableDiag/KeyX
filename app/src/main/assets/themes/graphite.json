@@ -1,0 +1,19 @@
+{
+ "id": "graphite",
+ "name": "Graphite",
+ "keyboardBackground": "#1B1B1F",
+ "stripBackground": "#141417",
+ "keyFace": "#2A2A30",
+ "keyBorder": "#2A2A30",
+ "keyPressed": "#3A3A42",
+ "keyText": "#ECECF1",
+ "hintText": "#99A0A0AA",
+ "functionText": "#B8B8C4",
+ "candidateText": "#B8B8C4",
+ "candidateHighlight": "#FFFFFF",
+ "divider": "#2A2A30",
+ "popupBackground": "#34343C",
+ "popupBorder": "#55555F",
+ "gestureTrail": "#997AA2FF",
+ "accent": "#7AA2FF"
+}

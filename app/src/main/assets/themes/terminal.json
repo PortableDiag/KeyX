@@ -1,0 +1,19 @@
+{
+ "id": "terminal",
+ "name": "Terminal",
+ "keyboardBackground": "#000300",
+ "stripBackground": "#0B1B11",
+ "keyFace": "#06120A",
+ "keyBorder": "#1E5B34",
+ "keyPressed": "#00391B",
+ "keyText": "#4DFF85",
+ "hintText": "#AA37B45F",
+ "functionText": "#33FF77",
+ "candidateText": "#37B45F",
+ "candidateHighlight": "#33FF77",
+ "divider": "#1E5B34",
+ "popupBackground": "#11241A",
+ "popupBorder": "#33FF77",
+ "gestureTrail": "#9933FF77",
+ "accent": "#33FF77"
+}
