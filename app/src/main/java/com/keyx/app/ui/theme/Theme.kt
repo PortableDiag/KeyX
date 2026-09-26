@@ -1,4 +1,4 @@
-package local.keyx.ui.theme
+package com.keyx.app.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme

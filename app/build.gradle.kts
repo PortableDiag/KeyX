@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "local.keyx"
+    namespace = "com.keyx.app"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "local.keyx"
+        applicationId = "com.keyx.app"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

@@ -1,4 +1,4 @@
-package local.keyx
+package com.keyx.app
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
