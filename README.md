@@ -16,6 +16,7 @@ permission is `VIBRATE`; nothing typed here can leave the phone through it.
 | Rows | number row; **arrow-key row** below the keyboard in SwiftKey's order: ↑ ↓ ← → |
 | Backspace | hold to repeat (whole words after a while); swipe left deletes a word |
 | Long-press | the symbol hint on each key, plus every accent |
+| Period | SwiftKey's quick punctuation: slide right for `?`, left for `!`; long-press opens on `.` with `?` to its right |
 | Voice | long-press comma (or toolbar) hands over to the system voice keyboard — KeyX has no microphone |
 | Clipboard | a fresh copy is offered in the strip; the panel holds this session's clips in memory only — **ClipX** keeps the history (open / save-to buttons) |
 | Themes | **Phosphor Green** (default), plus the Trellis Android themes — Ocean, Terminal, Trellis, Sticky Notes, Futuristic, SynthWave, Blueprint, Silkscreen, Phosphor P31 — and Amber Terminal, Graphite. The settings app wears whichever theme the keyboard does |

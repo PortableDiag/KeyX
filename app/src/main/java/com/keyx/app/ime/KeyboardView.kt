@@ -528,7 +528,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         }
     }
 
-    private fun openPopup(b: Box, options: List<String>) {
+    private fun openPopup(b: Box, options: List<String>, anchor: Int) {
         popupOptions = if (shift == Shift.OFF) options else options.map { it.uppercase() }
         popupCells.clear()
         val cellW = min(b.rect.width(), width / 8f).coerceAtLeast(36 * dp)
@@ -536,14 +536,15 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         val perRow = max(1, min(options.size, (width / cellW).toInt()))
         val rowsN = (options.size + perRow - 1) / perRow
         val totalW = perRow * cellW
-        val left = (b.rect.centerX() - cellW / 2).coerceIn(0f, width - totalW)
+        // The anchor cell goes over the key; the rest keep their left-right order around it.
+        val left = (b.rect.centerX() - cellW / 2 - (anchor % perRow) * cellW).coerceIn(0f, width - totalW)
         val top = max(0f, b.rect.top - cellH * rowsN)
         options.indices.forEach { i ->
             val r = i / perRow
             val c = i % perRow
             popupCells += RectF(left + c * cellW, top + r * cellH, left + (c + 1) * cellW, top + (r + 1) * cellH)
         }
-        popupSelected = 0
+        popupSelected = anchor.coerceIn(0, options.size - 1)
         invalidate()
     }
 
@@ -734,7 +735,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
                 }
                 b.key.popup.isNotEmpty() -> {
                     mode = Mode.POPUP
-                    openPopup(b, b.key.popup)
+                    openPopup(b, b.key.popup, b.key.popupAnchor)
                     actions.onKeyDown()
                 }
             }
@@ -908,7 +909,14 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         handler.removeCallbacks(repeat)
         val b = pressedBox
         when (mode) {
-            Mode.KEY -> if (b != null) tap(b.key)
+            Mode.KEY -> if (b != null) {
+                val flick = if (b.key.type == KeyType.PERIOD) {
+                    PeriodFlick.onRelease(x - downX, y - downY, SystemClock.uptimeMillis() - downTime, keyUnit)
+                } else {
+                    null
+                }
+                if (flick != null) actions.onChar(flick) else tap(b.key)
+            }
             Mode.GESTURE -> {
                 trail += GestureDecoder.Point(x, y)
                 actions.onGesture(ArrayList(trail))

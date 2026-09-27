@@ -7,7 +7,9 @@ enum class KeyType {
 
 /**
  * A key as the view draws it. [weight] is its width in key units; [popup] is
- * what a long-press offers, first entry preselected.
+ * what a long-press offers, left to right. The entry at [popupAnchor] opens
+ * directly over the key and is preselected, so the others sit where a slide
+ * left or right expects them.
  */
 data class Key(
     val type: KeyType,
@@ -15,6 +17,7 @@ data class Key(
     val hint: String? = null,
     val popup: List<String> = emptyList(),
     val weight: Float = 1f,
+    val popupAnchor: Int = 0,
 )
 
 data class KeyRow(val keys: List<Key>, val height: Float = 1f)
@@ -114,10 +117,12 @@ object KeyboardBuilder {
             hint = if (o.voiceKey) "mic" else null,
             popup = LanguageLayout.codePoints(symbols.longPress[","].orEmpty()),
         )
+        val periodPopup = LanguageLayout.codePoints(symbols.longPress["."].orEmpty())
         val period = Key(
             KeyType.PERIOD, ".",
             hint = symbols.periodHint,
-            popup = LanguageLayout.codePoints(symbols.longPress["."].orEmpty()),
+            popup = periodPopup,
+            popupAnchor = periodPopup.indexOf(".").coerceAtLeast(0),
         )
         val enter = Key(KeyType.ENTER, weight = 1.5f)
         val used = keys.sumOf { it.weight.toDouble() }.toFloat() + period.weight + enter.weight

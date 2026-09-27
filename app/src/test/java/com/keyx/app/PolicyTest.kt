@@ -70,6 +70,15 @@ class PolicyTest {
     }
 
     @Test
+    fun periodSlidesRightForQuestionAndLeftForExclamation() {
+        val kw = 100f
+        assertEquals("?", com.keyx.app.ime.PeriodFlick.onRelease(80f, 5f, 150, kw))
+        assertEquals("!", com.keyx.app.ime.PeriodFlick.onRelease(-80f, 5f, 150, kw))
+        assertEquals(null, com.keyx.app.ime.PeriodFlick.onRelease(10f, 2f, 90, kw)) // a tap
+        assertEquals(null, com.keyx.app.ime.PeriodFlick.onRelease(80f, 5f, 900, kw)) // a slow drag
+    }
+
+    @Test
     fun cursorControlStartsOnlyOnAStillLongPressAndSteps() {
         assertTrue(SpaceGesture.startsCursor(10f, 5f, 100f))
         assertFalse(SpaceGesture.startsCursor(80f, 5f, 100f))

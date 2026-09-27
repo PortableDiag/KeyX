@@ -56,6 +56,11 @@ class DataFilesTest {
             listOf(KeyType.SYMBOLS, KeyType.EMOJI, KeyType.COMMA, KeyType.SPACE, KeyType.PERIOD, KeyType.ENTER),
             rows[4].keys.map { it.type },
         )
+        // Long-press period opens on "." with "?" one to the right and "!" one to the left.
+        val period = rows[4].keys.first { it.type == KeyType.PERIOD }
+        assertEquals(".", period.popup[period.popupAnchor])
+        assertEquals("?", period.popup[period.popupAnchor + 1])
+        assertEquals("!", period.popup[period.popupAnchor - 1])
     }
 
     @Test

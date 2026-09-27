@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1 — 2026-09-26
+
+- Period key works like SwiftKey's quick punctuation: a quick slide right types
+  `?`, a quick slide left types `!`.
+- Long-press on period opens with `.` directly over the key, `?` one step to the
+  right and `!` one step to the left. It used to open on `,` and get pushed
+  left against the screen edge, which put `?` far to the left.
+
 ## 0.2.0 — 2026-09-26
 
 First release. Signed by keystore-manager with the `KeyX` record (certificate
