@@ -8,6 +8,8 @@
   reported those edits late, KeyX took the late report for a cursor move and
   dropped the word. Now the word is marked in place (nothing to report), and
   letters typed onto the end of a word always join it.
+- README: the smoke gate runs on KeyX's own emulator (`pf emulator keyx_api35`),
+  never a shared one.
 
 ## 0.2.2 — 2026-09-28
 

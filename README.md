@@ -45,7 +45,7 @@ fields get no suggestions. Backup and device transfer are excluded.
   hunspell's flags cannot always tell a noun from a nominalized adjective, so a
   few words (`mädchen` before `Mädchen`) rank in the wrong case until typing
   teaches them.
-- **Not verified on a real device yet:** voice hand-off, SMS one-time codes
+- **Not verified on a real device yet:** the 0.2.3 erase-and-retype fix, voice hand-off, SMS one-time codes
   surfacing with a third-party IME, the ClipX buttons, and whether the fast-typing
   fixes cure the jam seen on the phone (the emulator could not reproduce it).
 
@@ -116,9 +116,16 @@ path on one machine.
 crashed on start. Both are checked explicitly, because both have looked like
 success on this machine before.
 
-The smoke gate needs a device or emulator attached:
+The smoke gate needs an emulator, and it must be **your own**: several agents
+share this machine, and each one's emulator is somebody else's to everyone
+else. KeyX has its own AVD, `keyx_api35`:
 
 ```
-$ANDROID_HOME/emulator/emulator -avd pixel_api35 -no-window -no-audio &
-adb wait-for-device
+pf emulator keyx_api35                 # free port, read-only, waits for boot
+ANDROID_SERIAL=emulator-<port> pf gate .
+adb -s emulator-<port> emu kill        # when done
 ```
+
+With several emulators attached and no `ANDROID_SERIAL`, `pf gate` refuses
+rather than guessing. Timing bugs (late selection reports) happen only on the
+phone; `InputEngineTest` replays them with `onCursorMoved()` between edits.
