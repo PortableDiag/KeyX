@@ -1,0 +1,22 @@
+{
+ "id": "white_glow",
+ "name": "White Glow",
+ "keyboardBackground": "#000000",
+ "stripBackground": "#000000",
+ "keyFace": "#00000000",
+ "keyBorder": "#E6E6E6",
+ "keyPressed": "#262626",
+ "keyText": "#FFFFFF",
+ "hintText": "#E6E6E6",
+ "functionText": "#F2F2F2",
+ "candidateText": "#BDBDBD",
+ "candidateHighlight": "#FFFFFF",
+ "divider": "#5A5A5A",
+ "popupBackground": "#141414",
+ "popupBorder": "#FFFFFF",
+ "gestureTrail": "#99FFFFFF",
+ "accent": "#FFFFFF",
+ "glow": 0.6,
+ "keyEdge": "#7A7A7A",
+ "functionBorder": "#9A9A9A"
+}

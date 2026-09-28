@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2 — 2026-09-28
+
+- Two themes after SwiftKey's glowing outlines: **Neon** (cyan letter keys,
+  violet function keys) and **White Glow**.
+- Themes take three optional keys: `glow`, `keyEdge` and `functionBorder`.
+  Existing themes don't set them and look the same as before.
+
 ## 0.2.1 — 2026-09-26
 
 - Period key works like SwiftKey's quick punctuation: a quick slide right types

@@ -216,16 +216,45 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         return tmp
     }
 
-    private fun drawFace(canvas: Canvas, t: KeyboardTheme, r: RectF, pressed: Boolean, bordered: Boolean) {
+    /** [border] null draws the face bare; a theme's glow and edge apply to every outline. */
+    private fun drawFace(canvas: Canvas, t: KeyboardTheme, r: RectF, pressed: Boolean, border: Int?) {
         val f = faceRect(r)
         fill.color = if (pressed) t.keyPressed else t.keyFace
         if (pressed || (t.keyFace ushr 24) != 0) canvas.drawRoundRect(f, corner, corner, fill)
-        if (bordered) {
-            stroke.color = t.keyBorder
-            stroke.strokeWidth = 1.2f * dp
-            canvas.drawRoundRect(f, corner, corner, stroke)
-        }
+        if (border != null) outline(canvas, t, f, border)
     }
+
+    private fun outline(canvas: Canvas, t: KeyboardTheme, f: RectF, border: Int) {
+        val width = 1.2f * dp
+        if (t.glow > 0f) {
+            // Stacked wide, faint strokes: a halo that needs no BlurMaskFilter, which
+            // hardware rendering only supports from API 28.
+            for (i in 3 downTo 1) {
+                stroke.color = withAlpha(border, t.glow * 0.16f)
+                stroke.strokeWidth = width + i * 2.2f * dp
+                canvas.drawRoundRect(f, corner, corner, stroke)
+            }
+        }
+        val edge = t.keyEdge
+        if (edge != null) {
+            // The same outline dropped a little and kept to the lower half: a lip under the key.
+            val drop = 1.6f * dp
+            canvas.save()
+            canvas.clipRect(f.left - 4 * dp, f.centerY(), f.right + 4 * dp, f.bottom + drop + 4 * dp)
+            f.offset(0f, drop)
+            stroke.color = edge
+            stroke.strokeWidth = width * 2f
+            canvas.drawRoundRect(f, corner, corner, stroke)
+            f.offset(0f, -drop)
+            canvas.restore()
+        }
+        stroke.color = border
+        stroke.strokeWidth = width
+        canvas.drawRoundRect(f, corner, corner, stroke)
+    }
+
+    private fun withAlpha(color: Int, a: Float): Int =
+        (((color ushr 24) * a).toInt().coerceIn(0, 255) shl 24) or (color and 0xFFFFFF)
 
     private fun drawKey(canvas: Canvas, t: KeyboardTheme, b: Box) {
         val k = b.key
@@ -237,12 +266,12 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         val cy = r.centerY()
         when (k.type) {
             KeyType.CHAR -> {
-                drawFace(canvas, t, r, pressed, true)
+                val numberRow = b.row == 0 && rows.firstOrNull()?.height?.let { it < 1f } == true
+                drawFace(canvas, t, r, pressed, if (numberRow) t.functionBorder ?: t.keyBorder else t.keyBorder)
                 val label = when (shift) {
                     Shift.OFF -> k.text
                     else -> k.text.uppercase()
                 }
-                val numberRow = b.row == 0 && rows.firstOrNull()?.height?.let { it < 1f } == true
                 val size = if (numberRow) h * 0.42f else min(h * 0.42f, r.width() * 0.62f)
                 if (k.hint != null && !numberRow) {
                     centerText(canvas, k.hint, cx, r.top + padY + h * 0.2f, h * 0.2f, t.hintText)
@@ -252,7 +281,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
                 }
             }
             KeyType.SPACE -> {
-                drawFace(canvas, t, r, pressed, true)
+                drawFace(canvas, t, r, pressed, t.keyBorder)
                 centerText(canvas, spaceLabel, cx, cy, h * 0.24f, t.hintText)
                 if (languageCount > 1) {
                     val s = h * 0.13f
@@ -261,29 +290,29 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
                 }
             }
             KeyType.SHIFT -> {
-                drawFace(canvas, t, r, pressed, false)
+                drawFace(canvas, t, r, pressed, t.functionBorder)
                 drawShift(canvas, t, cx, cy, h * 0.42f)
             }
             KeyType.BACKSPACE -> {
-                drawFace(canvas, t, r, pressed, false)
+                drawFace(canvas, t, r, pressed, t.functionBorder)
                 drawBackspace(canvas, t, cx, cy, h * 0.3f)
             }
             KeyType.ENTER -> {
-                drawFace(canvas, t, r, pressed, false)
+                drawFace(canvas, t, r, pressed, t.functionBorder)
                 val label = enterLabel
                 if (label == null) drawEnter(canvas, t, cx, cy, h * 0.3f)
                 else centerText(canvas, label, cx, cy, h * 0.27f, t.functionText)
             }
             KeyType.SYMBOLS, KeyType.SYMBOLS_MORE, KeyType.ALPHA -> {
-                drawFace(canvas, t, r, pressed, false)
+                drawFace(canvas, t, r, pressed, t.functionBorder)
                 centerText(canvas, k.text, cx, cy, h * if (k.text.length > 3) 0.26f else 0.38f, t.functionText)
             }
             KeyType.EMOJI -> {
-                drawFace(canvas, t, r, pressed, false)
+                drawFace(canvas, t, r, pressed, t.functionBorder)
                 drawSmiley(canvas, t, cx, cy, h * 0.2f)
             }
             KeyType.COMMA, KeyType.PERIOD -> {
-                drawFace(canvas, t, r, pressed, false)
+                drawFace(canvas, t, r, pressed, t.functionBorder)
                 if (k.hint == "mic") drawMic(canvas, t, cx, r.top + padY + h * 0.2f, h * 0.1f)
                 else if (k.hint != null) centerText(canvas, k.hint, cx, r.top + padY + h * 0.2f, h * 0.2f, t.hintText)
                 centerText(canvas, k.text, cx, cy + h * 0.1f, h * 0.42f, t.keyText)
@@ -456,6 +485,10 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         listOf(strip.left, strip.center, strip.right).forEachIndexed { i, s ->
             if (s == null) return@forEachIndexed
             val slot = slots[i]
+            t.functionBorder?.let { border ->
+                tmp.set(slot.left + padX, slot.top + stripH * 0.12f, slot.right - padX, slot.bottom - stripH * 0.12f)
+                outline(canvas, t, tmp, border)
+            }
             if (pressedStrip == i) {
                 fill.color = t.keyPressed
                 canvas.drawRect(slot, fill)
@@ -484,7 +517,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
     private fun drawArrows(canvas: Canvas, t: KeyboardTheme) {
         arrowSlots().forEachIndexed { i, r ->
             val pressed = pressedArrow == i
-            drawFace(canvas, t, r, pressed, false)
+            drawFace(canvas, t, r, pressed, t.functionBorder)
             // Chevrons, as SwiftKey draws them.
             chevron(canvas, r.centerX(), r.centerY(), r.height() * 0.16f, arrowCodes[i], t.functionText)
         }
@@ -661,7 +694,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         val slots = controlSlots(labels.size, if (panel == Panel.EMOJI) listOf(1.5f, 5f, 1.5f) else null)
         slots.forEachIndexed { i, r ->
             val pressed = pressedControl == i
-            drawFace(canvas, t, r, pressed, labels[i] == " ")
+            drawFace(canvas, t, r, pressed, if (labels[i] == " ") t.keyBorder else t.functionBorder)
             when (labels[i]) {
                 "⌫" -> drawBackspace(canvas, t, r.centerX(), r.centerY(), r.height() * 0.3f)
                 " " -> Unit
@@ -689,7 +722,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         clips.forEachIndexed { i, c ->
             val top = gridTop() + i * clipRowH() - panelScroll
             val r = RectF(0f, top, width.toFloat(), top + clipRowH())
-            drawFace(canvas, t, r, pressedClip == i, true)
+            drawFace(canvas, t, r, pressedClip == i, t.keyBorder)
             text.textSize = clipRowH() * 0.36f
             val shown = TextUtils.ellipsize(c.replace('\n', ' '), text, width - 32 * dp, TextUtils.TruncateAt.END)
             centerText(canvas, shown.toString(), r.centerX(), r.centerY(), clipRowH() * 0.36f, t.keyText)

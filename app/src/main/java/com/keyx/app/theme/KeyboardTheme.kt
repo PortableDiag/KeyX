@@ -27,6 +27,12 @@ data class KeyboardTheme(
     val accent: Int,
     /** The settings app's background; the keyboard background unless a light theme needs paler paper. */
     val appBackground: Int = keyboardBackground,
+    /** Optional. 0..1: a halo in each outline's own color, SwiftKey's neon look. */
+    val glow: Float = 0f,
+    /** Optional. A lip under each outlined key, so it reads as raised; null draws none. */
+    val keyEdge: Int? = null,
+    /** Optional. Outlines function keys, the number row, the arrow row and the strip slots; null leaves them bare. */
+    val functionBorder: Int? = null,
 ) {
     companion object {
         const val DEFAULT_ID = "phosphor_green"
@@ -68,6 +74,12 @@ data class KeyboardTheme(
                 gestureTrail = c("gestureTrail"),
                 accent = c("accent"),
                 appBackground = if (json.has("appBackground")) c("appBackground") else c("keyboardBackground"),
+                glow = if (json.has("glow")) {
+                    json.optDouble("glow", Double.NaN).takeIf { it in 0.0..1.0 }?.toFloat()
+                        ?: throw ThemeException("\"glow\" must be a number from 0 to 1")
+                } else 0f,
+                keyEdge = if (json.has("keyEdge")) c("keyEdge") else null,
+                functionBorder = if (json.has("functionBorder")) c("functionBorder") else null,
             )
         }
 

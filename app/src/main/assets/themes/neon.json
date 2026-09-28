@@ -1,0 +1,22 @@
+{
+ "id": "neon",
+ "name": "Neon",
+ "keyboardBackground": "#000000",
+ "stripBackground": "#000000",
+ "keyFace": "#00000000",
+ "keyBorder": "#1EB4E6",
+ "keyPressed": "#0A2A3A",
+ "keyText": "#29C5F6",
+ "hintText": "#29C5F6",
+ "functionText": "#8A80D8",
+ "candidateText": "#8A80D8",
+ "candidateHighlight": "#29C5F6",
+ "divider": "#4A3F8C",
+ "popupBackground": "#06121C",
+ "popupBorder": "#29C5F6",
+ "gestureTrail": "#9929C5F6",
+ "accent": "#29C5F6",
+ "glow": 0.6,
+ "keyEdge": "#5B4FB0",
+ "functionBorder": "#5B4FB0"
+}

@@ -111,6 +111,24 @@ class DataFilesTest {
     }
 
     @Test
+    fun glowThemesCarryTheirOutlinesAndFlatThemesDoNot() {
+        val neon = KeyboardTheme.parse(TestData.text("themes/neon.json"))
+        assertEquals(0.6f, neon.glow)
+        assertEquals(0xFF5B4FB0.toInt(), neon.keyEdge)
+        assertEquals(0xFF5B4FB0.toInt(), neon.functionBorder)
+        assertTrue(KeyboardTheme.parse(TestData.text("themes/white_glow.json")).glow > 0f)
+        val flat = KeyboardTheme.parse(TestData.text("themes/phosphor_green.json"))
+        assertEquals(0f, flat.glow)
+        assertEquals(null, flat.keyEdge)
+        assertEquals(null, flat.functionBorder)
+        val base = TestData.text("themes/neon.json").trimEnd().removeSuffix("}")
+        for (bad in listOf("1.5", "\"bright\"")) {
+            val e = runCatching { KeyboardTheme.parse("$base, \"glow\": $bad}".replace("\"glow\": 0.6,", "")) }.exceptionOrNull()
+            assertTrue("glow $bad", e is ThemeException)
+        }
+    }
+
+    @Test
     fun emojiDataIsThere() {
         val lines = File("src/main/assets/emoji/emoji.tsv").readLines()
         assertTrue(lines.size > 1000)
