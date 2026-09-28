@@ -14,6 +14,8 @@ interface Editor {
     fun finishComposing()
     fun commit(text: String)
     fun deleteBefore(n: Int)
+    /** Make [word], the text just before the cursor, the composing region — without rewriting it. */
+    fun composeBefore(word: String)
     fun key(keyCode: Int)
     fun editorAction(action: Int)
     fun capsMode(reqModes: Int): Int
@@ -95,6 +97,9 @@ class InputEngine(
         if (text.length == 1 && isWordChar(text[0], composing.isNotEmpty())) {
             ed.batch {
                 if (fromGesture) commitComposing(" ", correct = false)
+                // Letters typed onto the end of a word extend that word: erase "Boating"
+                // back to "Boa", type "ring", and the word is "Boaring", not "ring".
+                if (composing.isEmpty()) adoptWordBeforeCursor()
                 if (composing.isEmpty()) composingPrevious = previousWordIn(ed.before(64))
                 composing.append(applyShift(text))
                 ed.setComposing(composing.toString())
@@ -392,6 +397,16 @@ class InputEngine(
 
     /** After a plain backspace, pick the word at the cursor back up so suggestions reappear. */
     private fun resumeWord() {
+        if (policy.suggest) adoptWordBeforeCursor()
+    }
+
+    /**
+     * The word ending at the cursor becomes the composing word, in place. The text is
+     * not deleted and re-set: on a phone the field reports those two edits late, the
+     * late report reads as the user moving the cursor, and the word was dropped again —
+     * so typing on went into a new word that knew nothing of the letters before it.
+     */
+    private fun adoptWordBeforeCursor() {
         val ed = editor ?: return
         if (!policy.suggest) return
         val after = ed.after(1)
@@ -400,12 +415,11 @@ class InputEngine(
         var i = before.length
         while (i > 0 && isWordChar(before[i - 1], true)) i--
         val word = before.substring(i)
+        // A word that fills the whole window may be longer than it; leave it alone.
         if (word.isEmpty() || word.length == before.length && before.length == 48) return
+        if (!isWordChar(word[0], false)) return
         composingPrevious = previousWordIn(before.dropLast(word.length))
-        ed.batch {
-            ed.deleteBefore(word.length)
-            ed.setComposing(word)
-        }
+        ed.composeBefore(word)
         composing.append(word)
     }
 

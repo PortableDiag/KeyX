@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.3 — 2026-09-28
+
+- Erasing part of a word and typing on extends that word: "Boating" erased to
+  "Boa" plus "ring" is "Boaring", and suggestions are for "Boaring" — not for
+  "ring". Backspacing into a word used to delete and re-set it; the phone
+  reported those edits late, KeyX took the late report for a cursor move and
+  dropped the word. Now the word is marked in place (nothing to report), and
+  letters typed onto the end of a word always join it.
+
 ## 0.2.2 — 2026-09-28
 
 - Two themes after SwiftKey's glowing outlines: **Neon** (cyan letter keys,

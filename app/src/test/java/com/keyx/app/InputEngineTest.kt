@@ -144,6 +144,55 @@ class InputEngineTest {
         assertEquals("One tw", ed.toString())
     }
 
+    /** Erase "boating" to "boa", type "ring": the word is "boaring", not "ring". */
+    @Test
+    fun typingOnAfterErasingPartOfAWordExtendsThatWord() {
+        type("so boating ")
+        repeat(5) { engine.onBackspace() }
+        assertEquals("So boa", ed.toString())
+        type("ring")
+        assertEquals("So boaring", ed.toString())
+        assertEquals("boaring", ed.composing)
+        assertEquals("boaring", engine.composingText)
+    }
+
+    /**
+     * On a phone the field reports edits late, and a late report reads as the user
+     * moving the cursor — which drops the resumed word. Typing on must still extend it.
+     */
+    @Test
+    fun aLateCursorReportDoesNotSplitTheWord() {
+        type("so boating ")
+        engine.onBackspace()
+        engine.onCursorMoved()
+        repeat(4) { engine.onBackspace(); engine.onCursorMoved() }
+        assertEquals("So boa", ed.toString())
+        assertEquals("", engine.composingText)
+        type("ring")
+        assertEquals("boaring", ed.composing)
+        val strip = engine.strip.all.map { it.text.lowercase() }
+        assertTrue("strip $strip knows only the new letters", strip.none { it in setOf("ring", "rang", "rung") })
+    }
+
+    @Test
+    fun typingAfterTappingToTheEndOfAWordExtendsIt() {
+        type("so boat ")
+        engine.onBackspace()
+        engine.onCursorMoved()
+        type("s")
+        assertEquals("boats", ed.composing)
+    }
+
+    @Test
+    fun typingIntoTheMiddleOfAWordDoesNotSwallowIt() {
+        type("so boat")
+        engine.onCursorMoved()
+        ed.cursor -= 2
+        type("x")
+        assertEquals("So boxat", ed.toString())
+        assertEquals("x", ed.composing)
+    }
+
     @Test
     fun tappingAPredictionCommitsItWithASpace() {
         type("hi ")

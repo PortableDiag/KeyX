@@ -23,6 +23,11 @@ class FakeEditor(initial: String = "") : Editor {
         if (text.isEmpty()) { compStart = -1; compEnd = -1 }
     }
 
+    override fun composeBefore(word: String) {
+        check(before(word.length) == word) { "composeBefore($word) but the text before the cursor is ${before(word.length)}" }
+        compStart = cursor - word.length; compEnd = cursor
+    }
+
     override fun finishComposing() { compStart = -1; compEnd = -1 }
 
     override fun commit(text: String) {

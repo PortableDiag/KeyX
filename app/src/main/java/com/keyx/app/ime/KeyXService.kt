@@ -10,6 +10,7 @@ import android.os.Vibrator
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.ExtractedTextRequest
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import com.keyx.app.MainActivity
@@ -355,6 +356,21 @@ class KeyXService : InputMethodService(), KeyboardActions {
         override fun deleteBefore(n: Int) {
             ic?.deleteSurroundingText(n, 0)
             cursor.deleteBefore(n)
+        }
+        override fun composeBefore(word: String) {
+            val c = ic ?: return
+            // setComposingRegion needs absolute offsets; the extracted text has them.
+            val et = c.getExtractedText(ExtractedTextRequest(), 0)
+            if (et != null && et.selectionStart >= 0 && et.selectionStart == et.selectionEnd) {
+                val end = et.startOffset + et.selectionEnd
+                if (c.setComposingRegion(end - word.length, end)) {
+                    cursor.composeBefore(word.length)
+                    return
+                }
+            }
+            // A field that will not say where its cursor is: rewrite the word instead.
+            deleteBefore(word.length)
+            setComposing(word)
         }
         override fun key(keyCode: Int) {
             cursor.unknown()

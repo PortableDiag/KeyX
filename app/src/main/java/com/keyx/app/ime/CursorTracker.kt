@@ -30,6 +30,9 @@ class CursorTracker {
 
     fun finishComposing() { composingLength = 0 }
 
+    /** Text already before the cursor became the composing region; the cursor did not move. */
+    fun composeBefore(length: Int) { if (cursor != null) composingLength = length }
+
     fun commit(length: Int) = move { c ->
         val start = c - composingLength
         composingLength = 0

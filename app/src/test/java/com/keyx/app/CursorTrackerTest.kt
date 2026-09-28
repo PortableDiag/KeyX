@@ -39,4 +39,14 @@ class CursorTrackerTest {
         assertFalse(t.onUpdate(5, 5))
         assertTrue(t.onUpdate(0, 0))
     }
+
+    @Test
+    fun composingTextAlreadyThereDoesNotMoveTheCursor() {
+        val t = CursorTracker()
+        t.reset(10)
+        t.composeBefore(4)
+        assertFalse(t.onUpdate(10, 10))
+        t.setComposing(7) // "boa" + "ring" replaces the 4-letter region: 6 + 7
+        assertFalse(t.onUpdate(13, 13))
+    }
 }
