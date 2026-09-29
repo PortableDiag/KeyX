@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.4 — 2026-09-29
+
+- First public release: the repository is now public. No code changes since
+  0.2.3; the README documents gating on KeyX's own emulator.
+
 ## 0.2.3 — 2026-09-28
 
 - Erasing part of a word and typing on extends that word: "Boating" erased to
