@@ -29,12 +29,13 @@ data class Settings(
     val clipboardStrip: Boolean = true,
     val autoCaps: Boolean = true,
     val doubleSpacePeriod: Boolean = true,
+    val spaceAfterPunctuation: Boolean = true,
     val vibrate: Boolean = true,
     val vibrateMs: Int = 10,
     val heightPercent: Int = 100,
 ) {
     val engineOptions: EngineOptions
-        get() = EngineOptions(autocorrect, predictions, emojiPredictions, autoCaps, doubleSpacePeriod)
+        get() = EngineOptions(autocorrect, predictions, emojiPredictions, autoCaps, doubleSpacePeriod, spaceAfterPunctuation)
 
     val buildOptions: BuildOptions
         get() = BuildOptions(numberRow, longPressSymbols, allAccents, emojiKey, voice)
@@ -54,6 +55,7 @@ data class Settings(
             "swipe" to { s: Settings -> s.swipe },
             "auto_caps" to { s: Settings -> s.autoCaps },
             "double_space_period" to { s: Settings -> s.doubleSpacePeriod },
+            "space_after_punctuation" to { s: Settings -> s.spaceAfterPunctuation },
             "number_row" to { s: Settings -> s.numberRow },
             "arrow_row" to { s: Settings -> s.arrowRow },
             "emoji_key" to { s: Settings -> s.emojiKey },
@@ -93,6 +95,7 @@ data class Settings(
                 clipboardStrip = b("clipboard_strip", d.clipboardStrip),
                 autoCaps = b("auto_caps", d.autoCaps),
                 doubleSpacePeriod = b("double_space_period", d.doubleSpacePeriod),
+                spaceAfterPunctuation = b("space_after_punctuation", d.spaceAfterPunctuation),
                 vibrate = b("vibrate", d.vibrate),
                 vibrateMs = p.getInt(VIBRATE_MS, d.vibrateMs),
                 heightPercent = p.getInt(HEIGHT, d.heightPercent),

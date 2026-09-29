@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.5 — 2026-09-29
+
+- A space follows `. , ! ? ; :` on its own: "hi,there" types "Hi, there".
+  A digit straight after `.`, `,` or `:` takes the space back (`3.14`,
+  `1,000`, `10:30`); a space typed out of habit isn't doubled; enter drops it;
+  `)` closes up against the mark. Off in URL, email and password fields, and
+  in Settings → *Space after punctuation*.
+
 ## 0.2.4 — 2026-09-29
 
 - First public release: the repository is now public. No code changes since

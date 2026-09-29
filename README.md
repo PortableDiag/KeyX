@@ -20,7 +20,7 @@ permission is `VIBRATE`; nothing typed here can leave the phone through it.
 | Voice | long-press comma (or toolbar) hands over to the system voice keyboard — KeyX has no microphone |
 | Clipboard | a fresh copy is offered in the strip; the panel holds this session's clips in memory only — **ClipX** keeps the history (open / save-to buttons) |
 | Themes | **Phosphor Green** (default), plus the Trellis Android themes — Ocean, Terminal, Trellis, Sticky Notes, Futuristic, SynthWave, Blueprint, Silkscreen, Phosphor P31 — Amber Terminal, Graphite, and SwiftKey's glowing outlines as **Neon** (cyan and violet) and **White Glow**. The settings app wears whichever theme the keyboard does |
-| Also | auto-caps, double-space period, smart punctuation, key-press popup, keyboard height, vibration strength |
+| Also | auto-caps, double-space period, a space after `. , ! ? ; :` (digits close it back up: `3.14`, `1,000`, `10:30`; off in URL and email fields), smart punctuation, key-press popup, keyboard height, vibration strength |
 
 **Languages:** en_US, en_GB (British spelling; both Englishes share one learned vocabulary), de_DE (QWERTZ, Ü Ö Ä), ru_RU (ЙЦУКЕН). Each is a
 layout (`assets/layouts/<id>.json`) plus a dictionary pack (`assets/dicts/`).

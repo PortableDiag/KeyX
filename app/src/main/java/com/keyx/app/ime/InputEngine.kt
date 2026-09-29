@@ -28,6 +28,7 @@ data class EngineOptions(
     val emojiPredictions: Boolean = true,
     val autoCaps: Boolean = true,
     val doubleSpacePeriod: Boolean = true,
+    val spaceAfterPunctuation: Boolean = true,
 )
 
 enum class Shift { OFF, ONCE, LOCKED }
@@ -75,6 +76,12 @@ class InputEngine(
     private var autoSpace = false
     private var lastWasSpace = false
 
+    /**
+     * The space before the cursor was added after a punctuation mark: a digit takes
+     * it back ("3.14", "1,000", "10:30"), and a space or enter doesn't double it.
+     */
+    private var spaceAfterMark = false
+
     private val language: String get() = suggester?.language ?: ""
 
     fun startInput(policy: FieldPolicy) {
@@ -85,6 +92,7 @@ class InputEngine(
         keepAsTyped = null
         autoSpace = false
         lastWasSpace = false
+        spaceAfterMark = false
         if (shift != Shift.LOCKED) shift = Shift.OFF
         refreshCaps()
         refreshStrip()
@@ -94,8 +102,10 @@ class InputEngine(
 
     fun onText(text: String) {
         val ed = editor ?: return
+        val markSpace = takeMarkSpace(ed)
         if (text.length == 1 && isWordChar(text[0], composing.isNotEmpty())) {
             ed.batch {
+                if (markSpace && text[0].isDigit() && ed.before(2).take(1) in listOf(".", ",", ":")) ed.deleteBefore(1)
                 if (fromGesture) commitComposing(" ", correct = false)
                 // Letters typed onto the end of a word extend that word: erase "Boating"
                 // back to "Boa", type "ring", and the word is "Boaring", not "ring".
@@ -116,8 +126,21 @@ class InputEngine(
                     ed.deleteBefore(1)
                     ed.commit("$text ")
                     autoSpace = true
+                    spaceAfterMark = spacesAfterMarks()
+                } else if (text in SWAPPING_PUNCTUATION && spacesAfterMarks() && endsAMarkable(ed.before(1))) {
+                    // "word," -> "word, " — the next word needs no space key.
+                    ed.commit("$text ")
+                    autoSpace = true
+                    spaceAfterMark = true
                 } else {
-                    ed.commit(text)
+                    if (markSpace && text in CLOSING_BRACKETS) {
+                        // "(see above.)": the bracket closes up against the mark.
+                        ed.deleteBefore(1)
+                        ed.commit("$text ")
+                        spaceAfterMark = true
+                    } else {
+                        ed.commit(text)
+                    }
                     autoSpace = false
                 }
             }
@@ -130,6 +153,12 @@ class InputEngine(
 
     fun onSpace() {
         val ed = editor ?: return
+        if (takeMarkSpace(ed) && composing.isEmpty()) {
+            // The mark already brought its space; this one is the habit of typing it.
+            lastWasSpace = false
+            finishSpace()
+            return
+        }
         ed.batch {
             when {
                 composing.isNotEmpty() -> {
@@ -162,7 +191,9 @@ class InputEngine(
 
     fun onEnter() {
         val ed = editor ?: return
+        val markSpace = takeMarkSpace(ed)
         ed.batch {
+            if (markSpace && composing.isEmpty()) ed.deleteBefore(1)
             commitComposing("", correct = !fromGesture)
             val action = policy.enterAction
             if (action != null) ed.editorAction(action) else ed.commit("\n")
@@ -175,6 +206,7 @@ class InputEngine(
 
     fun onBackspace() {
         val ed = editor ?: return
+        spaceAfterMark = false
         val undo = lastCorrection
         lastWasSpace = false
         if (undo != null && ed.before(undo.replacement.length + undo.separator.length) == undo.replacement + undo.separator) {
@@ -223,6 +255,7 @@ class InputEngine(
     /** Backspace swiped left: the whole previous word, and the spaces after it. */
     fun onDeleteWord() {
         val ed = editor ?: return
+        spaceAfterMark = false
         lastCorrection = null
         autoSpace = false
         lastWasSpace = false
@@ -240,6 +273,7 @@ class InputEngine(
 
     fun onPick(s: Suggestion) {
         val ed = editor ?: return
+        spaceAfterMark = false
         ed.batch {
             when (s.kind) {
                 Suggestion.Kind.EMOJI -> {
@@ -284,6 +318,7 @@ class InputEngine(
         val ed = editor ?: return
         if (candidates.isEmpty()) return
         val shifted = candidates.map { applyShift(it, wholeWord = true) }
+        spaceAfterMark = false
         ed.batch {
             if (composing.isNotEmpty()) {
                 commitComposing(" ", correct = !fromGesture)
@@ -306,6 +341,7 @@ class InputEngine(
 
     fun onEmoji(emoji: String) {
         val ed = editor ?: return
+        spaceAfterMark = false
         ed.batch {
             commitComposing(if (composing.isNotEmpty()) " " else "", correct = false)
             ed.commit(emoji)
@@ -317,6 +353,7 @@ class InputEngine(
 
     fun onPaste(text: String) {
         val ed = editor ?: return
+        spaceAfterMark = false
         ed.batch {
             commitComposing("", correct = false)
             ed.commit(text)
@@ -340,6 +377,7 @@ class InputEngine(
     /** The cursor moved somewhere the engine did not put it — a tap in the text, an arrow key. */
     fun onCursorMoved() {
         val ed = editor ?: return
+        spaceAfterMark = false
         if (composing.isNotEmpty()) {
             ed.finishComposing()
             composing.setLength(0)
@@ -358,6 +396,19 @@ class InputEngine(
     }
 
     // ---- internals --------------------------------------------------------
+
+    /** Whether the space before the cursor is one a mark added; clears the mark either way. */
+    private fun takeMarkSpace(ed: Editor): Boolean {
+        val was = spaceAfterMark && ed.before(1) == " "
+        spaceAfterMark = false
+        return was
+    }
+
+    /** Prose fields only: URLs, emails, passwords and raw-key fields get exactly what was typed. */
+    private fun spacesAfterMarks(): Boolean = options.spaceAfterPunctuation && policy.suggest
+
+    private fun endsAMarkable(before: String): Boolean =
+        before.isNotEmpty() && (before[0].isLetterOrDigit() || before[0] in CLOSING_BRACKETS || before[0] in "\"'’")
 
     private fun commitComposing(separator: String, correct: Boolean) {
         val ed = editor ?: return
@@ -468,6 +519,7 @@ class InputEngine(
     companion object {
         private const val CORRECTING_PUNCTUATION = ".,!?;:)]}\"'"
         private const val SWAPPING_PUNCTUATION = ".,!?;:"
+        private const val CLOSING_BRACKETS = ")]}"
 
         fun isWordChar(c: Char, inWord: Boolean): Boolean =
             c.isLetter() || c.isDigit() || (inWord && (c == '\'' || c == '’'))

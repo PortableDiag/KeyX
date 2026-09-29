@@ -78,6 +78,59 @@ class InputEngineTest {
     }
 
     @Test
+    fun punctuationBringsItsOwnSpace() {
+        type("hi,there.ok")
+        assertEquals("Hi, there. Ok", ed.toString())
+    }
+
+    @Test
+    fun aSpaceAfterAutoSpacedPunctuationIsNotDoubled() {
+        type("hi, there. ok")
+        assertEquals("Hi, there. Ok", ed.toString())
+    }
+
+    @Test
+    fun digitsCloseUpNumbers() {
+        type("pi 3.14 and 1,000 at 10:30")
+        assertEquals("Pi 3.14 and 1,000 at 10:30", ed.toString())
+    }
+
+    @Test
+    fun marksRunTogether() {
+        type("what?!")
+        assertEquals("What?! ", ed.toString())
+        type("wait...")
+        assertEquals("What?! Wait... ", ed.toString())
+    }
+
+    @Test
+    fun closingBracketClosesUpAgainstTheMark() {
+        type("(see above.)")
+        assertEquals("(see above.) ", ed.toString())
+    }
+
+    @Test
+    fun enterDropsTheTrailingAutoSpace() {
+        type("hi.")
+        engine.onEnter()
+        assertEquals("Hi.\n", ed.toString())
+    }
+
+    @Test
+    fun machineFieldsGetNoSpaceAfterPunctuation() {
+        engine.startInput(FieldPolicy.from(InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI, 0))
+        type("example.com")
+        assertEquals("example.com", ed.toString())
+    }
+
+    @Test
+    fun spaceAfterPunctuationCanBeTurnedOff() {
+        engine.options = engine.options.copy(spaceAfterPunctuation = false)
+        type("hi,there")
+        assertEquals("Hi,there", ed.toString())
+    }
+
+    @Test
     fun doubleSpaceIsAPeriod() {
         type("hi  ")
         assertEquals("Hi. ", ed.toString())
@@ -118,7 +171,9 @@ class InputEngineTest {
         assertEquals("Hello ", ed.toString())
         engine.onGesture(listOf("there"))
         engine.onText(".")
-        assertEquals("Hello there.", ed.toString())
+        assertEquals("Hello there. ", ed.toString())
+        engine.onGesture(listOf("bye"))
+        assertEquals("Hello there. Bye", ed.toString())
     }
 
     @Test

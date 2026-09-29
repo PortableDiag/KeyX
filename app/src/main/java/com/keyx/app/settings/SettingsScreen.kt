@@ -60,6 +60,7 @@ private val SWITCH_LABELS = mapOf(
     "swipe" to ("Swipe typing" to "Draw a word across the letters"),
     "auto_caps" to ("Auto-capitalize" to "Capital at the start of a sentence"),
     "double_space_period" to ("Double-space period" to "Two spaces type \". \""),
+    "space_after_punctuation" to ("Space after punctuation" to "A space follows . , ! ? ; : — digits close it up again (3.14)"),
     "number_row" to ("Number row" to "1–0 above the letters"),
     "arrow_row" to ("Arrow keys row" to "← ↑ ↓ → below the keyboard"),
     "emoji_key" to ("Dedicated emoji key" to "Next to the comma"),
