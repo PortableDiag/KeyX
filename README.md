@@ -45,7 +45,12 @@ fields get no suggestions. Backup and device transfer are excluded.
   hunspell's flags cannot always tell a noun from a nominalized adjective, so a
   few words (`mädchen` before `Mädchen`) rank in the wrong case until typing
   teaches them.
-- **Not verified on a real device yet:** the 0.2.3 erase-and-retype fix, voice hand-off, SMS one-time codes
+- **Space after punctuation** can't tell a web address typed into an ordinary
+  text box from prose: `example.com` there comes out `example. com`. URL and
+  email fields are exempt; elsewhere, turn it off in Settings.
+- **No license yet:** the repo is public, but until a LICENSE is chosen the code
+  is all rights reserved. The dictionary packs are CC BY-SA 4.0 (see below).
+- **Not verified on a real device yet:** space after punctuation (0.2.5), the 0.2.3 erase-and-retype fix, voice hand-off, SMS one-time codes
   surfacing with a third-party IME, the ClipX buttons, and whether the fast-typing
   fixes cure the jam seen on the phone (the emulator could not reproduce it).
 
