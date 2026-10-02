@@ -249,6 +249,8 @@ class KeyXService : InputMethodService(), KeyboardActions {
 
     override fun onPick(s: Suggestion) = engine.onPick(s)
 
+    override fun onRemoveSuggestion(word: String) = engine.onRemoveSuggestion(word)
+
     override fun onPasteClip(text: String) {
         view?.clipChip = null
         engine.onPaste(text)
@@ -260,7 +262,7 @@ class KeyXService : InputMethodService(), KeyboardActions {
         val dict = dictionary ?: return
         val lang = engine.suggester?.language ?: return
         val words = d.decode(trace, dict, bonus = { w -> 2.0 * kotlin.math.ln(1.0 + data.learned.count(lang, w)) })
-        engine.onGesture(words)
+        engine.onGesture(words.filterNot { data.learned.isBlocked(lang, it) })
     }
 
     override fun onEmoji(e: String) {

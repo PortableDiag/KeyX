@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.6 — 2026-10-02
+
+- **Long-press a suggestion to remove it.** The strip asks "Remove “word”?";
+  *Remove* forgets the word and keeps it out of suggestions, predictions,
+  autocorrect and swipe — dictionary words too. Typing it again doesn't bring
+  it back; tapping it as typed (the quoted slot) or importing it does. Any key
+  is a cancel, so typing carries on. *Reset learning* clears removals.
+- **Web addresses survive space after punctuation.** `dry.ai`,
+  `trelliscards.com` and `bbc.co.uk` close back up once the word after the dot
+  is a top-level domain (`com`, `ai`, `io`, `co`, `uk`, …; never one that is
+  also an everyday word like `is`, `it`, `me`, `to`). A capitalized `AI` or
+  `UK` stays a sentence, and so does a space typed after the dot.
+  `https://…`, `www.…` and `name@host…` type exactly as typed, with no
+  autocorrect on the scheme.
+
 ## 0.2.5 — 2026-09-29
 
 - A space follows `. , ! ? ; :` on its own: "hi,there" types "Hi, there".

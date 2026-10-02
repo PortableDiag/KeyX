@@ -36,7 +36,8 @@ class Suggester(
 ) {
     /** A word the operator has used this often is theirs, and is never "corrected". */
     fun isKnown(word: String): Boolean =
-        dictionary.contains(word) || learned.count(language, word) >= KNOWN_AFTER
+        !learned.isBlocked(language, word) &&
+            (dictionary.contains(word) || learned.count(language, word) >= KNOWN_AFTER)
 
     private data class Query(
         val typed: String,
@@ -64,6 +65,7 @@ class Suggester(
         val known = isKnown(typed)
         val ranked = HashMap<String, Pair<String, Double>>() // lower -> (form, score)
         fun offer(form: String, score: Double) {
+            if (learned.isBlocked(language, form)) return
             val key = form.lowercase()
             val cur = ranked[key]
             if (cur == null || cur.second < score) ranked[key] = form to score
@@ -75,7 +77,7 @@ class Suggester(
         for ((w, _) in learned.completions(language, lower, 6)) {
             if (!w.equals(typed, true)) offer(w, prior(w, previous) - COMPLETION_PENALTY)
         }
-        val fuzzy = corrections(lower, previous)
+        val fuzzy = corrections(lower, previous).filterNot { learned.isBlocked(language, it.first) }
         for ((form, s) in fuzzy) offer(form, s)
         ranked.remove(lower)
 
@@ -117,7 +119,7 @@ class Suggester(
         if (previous != null) words += learned.next(language, previous, 3)
         for (e in dictionary.top(8)) {
             if (words.size >= 3) break
-            if (words.none { it.equals(e.word, true) }) words += e.word
+            if (words.none { it.equals(e.word, true) } && !learned.isBlocked(language, e.word)) words += e.word
         }
         val emojiFor = if (emojiOn && previous != null) emoji?.forWord(previous) else null
         fun p(i: Int) = words.getOrNull(i)?.let { Suggestion(it, Suggestion.Kind.PREDICTION) }
@@ -229,7 +231,7 @@ class Suggester(
      */
     private fun caseFix(typed: String): String? {
         if (typed.any { it.isUpperCase() } || !typed.all { it.isLetter() || it == '\'' }) return null
-        val forms = dictionary.forms(typed)
+        val forms = dictionary.forms(typed).filterNot { learned.isBlocked(language, it.word) }
         if (forms.isEmpty() || forms.any { it.word == typed }) return null
         if (learned.forms(language, typed).any { it == typed }) return null
         return forms.first().word

@@ -9,7 +9,7 @@ permission is `VIBRATE`; nothing typed here can leave the phone through it.
 | | |
 |---|---|
 | Autocorrect | on space and punctuation; neighboring-key slips, doubled letters, missing apostrophes and accents are cheap edits. Backspace straight after a correction puts the typed word back and teaches it |
-| Predictions | completions while typing, next-word predictions after; the strip is SwiftKey's shape — center is what space commits, left shows the word as typed when a correction is pending |
+| Predictions | completions while typing, next-word predictions after; the strip is SwiftKey's shape — center is what space commits, left shows the word as typed when a correction is pending. Long-press a suggestion to remove it (asks first) |
 | Emoji | dedicated emoji key and panel (Emoji ≤14, recents); emoji predictions ("pizza" → 🍕) |
 | Swipe typing | shape-matching decoder over the dictionary; swiped words get spaces automatically, backspace removes one whole |
 | Space bar | flick left/right = switch language; long-press then drag = cursor control; shows the language name |
@@ -20,7 +20,7 @@ permission is `VIBRATE`; nothing typed here can leave the phone through it.
 | Voice | long-press comma (or toolbar) hands over to the system voice keyboard — KeyX has no microphone |
 | Clipboard | a fresh copy is offered in the strip; the panel holds this session's clips in memory only — **ClipX** keeps the history (open / save-to buttons) |
 | Themes | **Phosphor Green** (default), plus the Trellis Android themes — Ocean, Terminal, Trellis, Sticky Notes, Futuristic, SynthWave, Blueprint, Silkscreen, Phosphor P31 — Amber Terminal, Graphite, and SwiftKey's glowing outlines as **Neon** (cyan and violet) and **White Glow**. The settings app wears whichever theme the keyboard does |
-| Also | auto-caps, double-space period, a space after `. , ! ? ; :` (digits close it back up: `3.14`, `1,000`, `10:30`; off in URL and email fields), smart punctuation, key-press popup, keyboard height, vibration strength |
+| Also | auto-caps, double-space period, a space after `. , ! ? ; :` (digits close it back up: `3.14`, `1,000`, `10:30`; domains close up too: `dry.ai`, `https://`, `www.`; off in URL and email fields), smart punctuation, key-press popup, keyboard height, vibration strength |
 
 **Languages:** en_US, en_GB (British spelling; both Englishes share one learned vocabulary), de_DE (QWERTZ, Ü Ö Ä), ru_RU (ЙЦУКЕН). Each is a
 layout (`assets/layouts/<id>.json`) plus a dictionary pack (`assets/dicts/`).
@@ -45,12 +45,16 @@ fields get no suggestions. Backup and device transfer are excluded.
   hunspell's flags cannot always tell a noun from a nominalized adjective, so a
   few words (`mädchen` before `Mädchen`) rank in the wrong case until typing
   teaches them.
-- **Space after punctuation** can't tell a web address typed into an ordinary
-  text box from prose: `example.com` there comes out `example. com`. URL and
-  email fields are exempt; elsewhere, turn it off in Settings.
+- **Space after punctuation** recognizes web addresses by their top-level
+  domain (`dry.ai`, `trelliscards.com`), `https://`, `www.` and `@`. A domain
+  whose ending is an everyday word (`.is`, `.it`, `.me`, `.to`, `.us`) or isn't
+  on the list (`.news`, `.page`) still comes out `example. me`; URL and email
+  fields are exempt, and the setting turns it off.
+- **Removed suggestions** have no list in Settings yet: a removed word comes
+  back by tapping it as typed, by *Import words*, or with *Reset learning*.
 - **No license yet:** the repo is public, but until a LICENSE is chosen the code
   is all rights reserved. The dictionary packs are CC BY-SA 4.0 (see below).
-- **Not verified on a real device yet:** space after punctuation (0.2.5), the 0.2.3 erase-and-retype fix, voice hand-off, SMS one-time codes
+- **Not verified on a real device yet:** long-press removal and domain spacing (0.2.6), space after punctuation (0.2.5), the 0.2.3 erase-and-retype fix, voice hand-off, SMS one-time codes
   surfacing with a third-party IME, the ClipX buttons, and whether the fast-typing
   fixes cure the jam seen on the phone (the emulator could not reproduce it).
 

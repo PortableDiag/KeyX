@@ -82,6 +82,14 @@ class InputEngine(
      */
     private var spaceAfterMark = false
 
+    /**
+     * A "." just got its space after a run of text that may be a domain name: if the next
+     * word is a top-level domain, "dry. Ai" was "dry.ai" all along, and is rewritten so.
+     * [committed] is the run as it stands, [typed] as it was typed before any autocorrect.
+     */
+    private data class DomainDot(val committed: String, val typed: String)
+    private var domainDot: DomainDot? = null
+
     private val language: String get() = suggester?.language ?: ""
 
     fun startInput(policy: FieldPolicy) {
@@ -93,6 +101,7 @@ class InputEngine(
         autoSpace = false
         lastWasSpace = false
         spaceAfterMark = false
+        domainDot = null
         if (shift != Shift.LOCKED) shift = Shift.OFF
         refreshCaps()
         refreshStrip()
@@ -120,20 +129,29 @@ class InputEngine(
             lastWasSpace = false
         } else {
             ed.batch {
-                commitComposing("", correct = !fromGesture && text in CORRECTING_PUNCTUATION)
+                // Inside a web address or an email address, punctuation is part of it:
+                // no correction, and no space after the mark.
+                val address = isAddress(tokenBefore(ed.before(64))) ||
+                    (text == ":" && composing.toString().lowercase() in SCHEMES)
+                commitComposing("", correct = !fromGesture && !address && text in CORRECTING_PUNCTUATION)
                 if (text in SWAPPING_PUNCTUATION && autoSpace && ed.before(1) == " ") {
                     // "word ." -> "word. " — the space the keyboard added moves after the mark.
                     ed.deleteBefore(1)
                     ed.commit("$text ")
                     autoSpace = true
                     spaceAfterMark = spacesAfterMarks()
-                } else if (text in SWAPPING_PUNCTUATION && spacesAfterMarks() && endsAMarkable(ed.before(1))) {
+                } else if (text in SWAPPING_PUNCTUATION && spacesAfterMarks() && !address && endsAMarkable(ed.before(1))) {
                     // "word," -> "word, " — the next word needs no space key.
+                    if (text == ".") domainDot = domainDotBefore(ed.before(64))
                     ed.commit("$text ")
                     autoSpace = true
                     spaceAfterMark = true
                 } else {
-                    if (markSpace && text in CLOSING_BRACKETS) {
+                    if (markSpace && text == "/") {
+                        // "https:" then "/": a protocol, not a sentence.
+                        ed.deleteBefore(1)
+                        ed.commit(text)
+                    } else if (markSpace && text in CLOSING_BRACKETS) {
                         // "(see above.)": the bracket closes up against the mark.
                         ed.deleteBefore(1)
                         ed.commit("$text ")
@@ -154,7 +172,9 @@ class InputEngine(
     fun onSpace() {
         val ed = editor ?: return
         if (takeMarkSpace(ed) && composing.isEmpty()) {
-            // The mark already brought its space; this one is the habit of typing it.
+            // The mark already brought its space; this one is the habit of typing it —
+            // and says the dot ended a sentence, not a domain name.
+            domainDot = null
             lastWasSpace = false
             finishSpace()
             return
@@ -274,6 +294,7 @@ class InputEngine(
     fun onPick(s: Suggestion) {
         val ed = editor ?: return
         spaceAfterMark = false
+        domainDot = null
         ed.batch {
             when (s.kind) {
                 Suggestion.Kind.EMOJI -> {
@@ -378,6 +399,7 @@ class InputEngine(
     fun onCursorMoved() {
         val ed = editor ?: return
         spaceAfterMark = false
+        domainDot = null
         if (composing.isNotEmpty()) {
             ed.finishComposing()
             composing.setLength(0)
@@ -387,6 +409,15 @@ class InputEngine(
         autoSpace = false
         lastWasSpace = false
         refreshCaps()
+        refreshStrip()
+    }
+
+    /** Long-press on a suggestion, confirmed: it is forgotten and not suggested again until taught. */
+    fun onRemoveSuggestion(word: String) {
+        if (language.isEmpty()) return
+        if (keepAsTyped.equals(word, ignoreCase = true)) keepAsTyped = null
+        learned.block(language, word)
+        onLearned()
         refreshStrip()
     }
 
@@ -407,6 +438,23 @@ class InputEngine(
     /** Prose fields only: URLs, emails, passwords and raw-key fields get exactly what was typed. */
     private fun spacesAfterMarks(): Boolean = options.spaceAfterPunctuation && policy.suggest
 
+    /** The run of text since the last whitespace — where an address would be. */
+    private fun tokenBefore(before: String): String = before.takeLastWhile { !it.isWhitespace() }
+
+    private fun domainDotBefore(before: String): DomainDot? {
+        val run = tokenBefore(before)
+        if (run.isEmpty() || !run.last().isLetterOrDigit()) return null
+        val undo = lastCorrection
+        val typed = if (undo != null && run.endsWith(undo.replacement)) run.dropLast(undo.replacement.length) + undo.original else run
+        return DomainDot(run, typed)
+    }
+
+    /** "dry. Ai" being typed: the word after a domain's dot is a top-level domain. */
+    private fun completesDomain(word: String): Boolean {
+        val dot = domainDot ?: return false
+        return isTopLevelDomain(word) && editor?.before(dot.committed.length + 2 + word.length) == dot.committed + ". " + word
+    }
+
     private fun endsAMarkable(before: String): Boolean =
         before.isNotEmpty() && (before[0].isLetterOrDigit() || before[0] in CLOSING_BRACKETS || before[0] in "\"'’")
 
@@ -417,6 +465,20 @@ class InputEngine(
             return
         }
         val typed = composing.toString()
+        if (completesDomain(typed)) {
+            // "dry. Ai" -> "dry.ai": the space and the capital were the sentence rules guessing wrong.
+            val dot = domainDot!!
+            ed.setComposing("")
+            ed.deleteBefore(dot.committed.length + 2)
+            ed.commit(dot.typed + "." + typed.lowercase() + separator)
+            domainDot = null
+            lastCorrection = null
+            keepAsTyped = null
+            composing.setLength(0)
+            fromGesture = false
+            return
+        }
+        domainDot = null
         val correction = if (correct && typed != keepAsTyped && policy.autocorrect && options.autocorrect) {
             suggester?.forWord(typed, previousWord(), autocorrect = true, emojiOn = false)?.autocorrect
         } else {
@@ -508,7 +570,8 @@ class InputEngine(
             composing.isNotEmpty() -> sg.forWord(
                 composing.toString(),
                 previousWord(),
-                autocorrect = policy.autocorrect && options.autocorrect && composing.toString() != keepAsTyped,
+                autocorrect = policy.autocorrect && options.autocorrect && composing.toString() != keepAsTyped &&
+                    !completesDomain(composing.toString()),
                 emojiOn = options.emojiPredictions,
             )
             else -> sg.predictNext(previousWord(), options.emojiPredictions)
@@ -520,6 +583,33 @@ class InputEngine(
         private const val CORRECTING_PUNCTUATION = ".,!?;:)]}\"'"
         private const val SWAPPING_PUNCTUATION = ".,!?;:"
         private const val CLOSING_BRACKETS = ")]}"
+
+        /** "https:" is a protocol about to get its "//", not a word to correct. */
+        private val SCHEMES = setOf("http", "https", "ftp", "sftp", "ftps", "ssh", "git", "file", "ws", "wss")
+
+        /**
+         * Top-level domains that are not also everyday words: "is", "it", "me", "no",
+         * "to", "us" would turn the start of a sentence into an address.
+         */
+        private val TOP_LEVEL_DOMAINS = setOf(
+            "com", "net", "org", "edu", "gov", "mil", "int", "io", "ai", "co", "dev", "app", "info", "biz",
+            "xyz", "gg", "tv", "fm", "ly", "cc", "ws", "tk", "md", "gl", "uk", "de", "ru", "fr", "jp", "cn",
+            "ca", "au", "nz", "ie", "nl", "ch", "es", "eu", "pl", "br", "se", "dk", "fi", "kr", "mx", "cz",
+            "gr", "pt", "ro", "ua", "za", "rs",
+        )
+
+        /**
+         * A top-level domain, typed as one: auto-caps' "Ai" counts, a deliberate "AI" or
+         * "UK" is an acronym starting a sentence.
+         */
+        fun isTopLevelDomain(word: String): Boolean =
+            word.lowercase() in TOP_LEVEL_DOMAINS && word.drop(1).none { it.isUpperCase() }
+
+        /** "https://…", "www.…", "name@host…": text where every mark belongs to the address. */
+        fun isAddress(run: String): Boolean {
+            val r = run.lowercase()
+            return "://" in r || r == "www" || r.startsWith("www.") || r.indexOf('@') > 0
+        }
 
         fun isWordChar(c: Char, inWord: Boolean): Boolean =
             c.isLetter() || c.isDigit() || (inWord && (c == '\'' || c == '’'))

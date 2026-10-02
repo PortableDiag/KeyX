@@ -1,5 +1,6 @@
 package com.keyx.app.predict
 
+import org.json.JSONArray
 import org.json.JSONObject
 
 /**
@@ -18,7 +19,10 @@ class LearnedModel {
     /** language -> lowercase previous word -> lowercase word -> count */
     private val pairs = HashMap<String, HashMap<String, HashMap<String, Int>>>()
 
-    val isEmpty: Boolean get() = words.values.all { it.isEmpty() }
+    /** language -> lowercase words the operator removed from suggestions */
+    private val blocked = HashMap<String, HashSet<String>>()
+
+    val isEmpty: Boolean get() = words.values.all { it.isEmpty() } && blocked.values.all { it.isEmpty() }
 
     /** Bumped on every change, so anything cached from the model knows it is stale. */
     var version = 0L
@@ -30,11 +34,17 @@ class LearnedModel {
 
     fun learn(language: String, previous: String?, word: String, weight: Int = 1) {
         if (!isLearnable(word)) return
-        version++
         val lower = word.lowercase()
+        val removed = blocked[language]
+        if (removed != null && lower in removed) {
+            // Typing a removed word again doesn't bring it back; teaching it on purpose does.
+            if (weight < TEACH_WEIGHT) return
+            removed.remove(lower)
+        }
+        version++
         val forms = words.getOrPut(language) { HashMap() }.getOrPut(lower) { HashMap() }
         forms[word] = (forms[word] ?: 0) + weight
-        if (previous != null && isLearnable(previous)) {
+        if (previous != null && isLearnable(previous) && !isBlocked(language, previous)) {
             val next = pairs.getOrPut(language) { HashMap() }.getOrPut(previous.lowercase()) { HashMap() }
             next[lower] = (next[lower] ?: 0) + weight
         }
@@ -83,10 +93,20 @@ class LearnedModel {
         pairs[language]?.remove(lower)
     }
 
+    /** Forget [word] and keep it out of suggestions — dictionary words too — until it is taught again. */
+    fun block(language: String, word: String) {
+        forget(language, word)
+        blocked.getOrPut(language) { HashSet() } += word.lowercase()
+    }
+
+    fun isBlocked(language: String, word: String): Boolean =
+        blocked[language]?.contains(word.lowercase()) == true
+
     fun clear() {
         version++
         words.clear()
         pairs.clear()
+        blocked.clear()
     }
 
     /**
@@ -120,7 +140,7 @@ class LearnedModel {
     fun toJson(): JSONObject {
         val root = JSONObject().put("version", 1)
         val langs = JSONObject()
-        for (lang in words.keys + pairs.keys) {
+        for (lang in words.keys + pairs.keys + blocked.keys) {
             val u = JSONObject()
             words[lang]?.values?.forEach { forms -> forms.forEach { (w, c) -> u.put(w, c) } }
             val b = JSONObject()
@@ -129,7 +149,9 @@ class LearnedModel {
                 next.forEach { (w, c) -> n.put(w, c) }
                 b.put(prev, n)
             }
-            langs.put(lang, JSONObject().put("words", u).put("pairs", b))
+            val x = JSONArray()
+            blocked[lang]?.sorted()?.forEach { x.put(it) }
+            langs.put(lang, JSONObject().put("words", u).put("pairs", b).put("blocked", x))
         }
         return root.put("languages", langs)
     }
@@ -151,6 +173,8 @@ class LearnedModel {
 
     companion object {
         const val IMPORTED_WEIGHT = 5
+        /** Weight of a deliberate teach (tapping the typed word, reverting a correction): it lifts a block. */
+        const val TEACH_WEIGHT = 2
         private const val MAX_PAIRS = 60_000
         private const val MAX_WORDS = 40_000
 
@@ -176,6 +200,11 @@ class LearnedModel {
                         val next = m.getOrPut(prev.lowercase()) { HashMap() }
                         for (w in n.keys()) next[w.lowercase()] = (next[w.lowercase()] ?: 0) + n.getInt(w)
                     }
+                }
+                val x = l.optJSONArray("blocked")
+                if (x != null) {
+                    val set = model.blocked.getOrPut(lang) { HashSet() }
+                    for (i in 0 until x.length()) set += x.getString(i).lowercase()
                 }
             }
             return model

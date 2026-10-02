@@ -42,6 +42,7 @@ interface KeyboardActions {
     fun onVoice()
     fun onArrow(keyCode: Int)
     fun onPick(s: Suggestion)
+    fun onRemoveSuggestion(word: String)
     fun onPasteClip(text: String)
     fun onGesture(trace: List<GestureDecoder.Point>)
     fun onEmoji(e: String)
@@ -87,6 +88,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         set(v) {
             field = v
             panelScroll = 0f
+            confirmRemove = null
             scroller.forceFinished(true)
             toolbarOpen = false
             requestLayout()
@@ -460,7 +462,38 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         return tools.indices.map { RectF(left + it * w, 0f, left + (it + 1) * w, stripH) }
     }
 
+    /** A suggestion long-pressed for removal; the strip asks before it goes. */
+    private var confirmRemove: String? = null
+
+    /** The confirmation's buttons: remove, cancel. */
+    private fun confirmSlots(): List<RectF> {
+        val w = width * 0.22f
+        return listOf(RectF(width - 2 * w, 0f, width - w, stripH), RectF(width - w, 0f, width.toFloat(), stripH))
+    }
+
+    private fun drawConfirm(canvas: Canvas, t: KeyboardTheme, word: String) {
+        tmp.set(padX, stripH * 0.08f, width - padX, stripH * 0.92f)
+        fill.color = t.popupBackground
+        canvas.drawRoundRect(tmp, corner, corner, fill)
+        outline(canvas, t, RectF(tmp), t.popupBorder)
+        val slots = confirmSlots()
+        val size = stripH * 0.34f
+        text.textSize = size
+        val labelW = slots[0].left - 12 * dp
+        val shown = TextUtils.ellipsize("Remove “$word”?", text, labelW, TextUtils.TruncateAt.MIDDLE)
+        centerText(canvas, shown.toString(), 6 * dp + labelW / 2, stripH / 2, size, t.candidateText)
+        listOf("Remove", "Cancel").forEachIndexed { i, label ->
+            val r = slots[i]
+            tmp.set(r.left + padX, r.top + stripH * 0.18f, r.right - padX * 2, r.bottom - stripH * 0.18f)
+            fill.color = if (pressedStrip == CONFIRM_REMOVE + i) t.keyPressed else t.keyFace
+            canvas.drawRoundRect(tmp, corner, corner, fill)
+            outline(canvas, t, RectF(tmp), if (i == 0) t.accent else t.keyBorder)
+            centerText(canvas, label, r.centerX() - padX / 2, r.centerY(), size, if (i == 0) t.accent else t.candidateText)
+        }
+    }
+
     private fun drawStrip(canvas: Canvas, t: KeyboardTheme) {
+        confirmRemove?.let { drawConfirm(canvas, t, it); return }
         // The toolbar toggle, SwiftKey's circle on the left.
         val r = stripH * 0.3f
         fill.color = t.keyPressed
@@ -782,6 +815,27 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         }
     }
 
+    /** Held on a suggestion: offer to remove it. */
+    private val stripLongPress = Runnable {
+        if (mode != Mode.STRIP) return@Runnable
+        val s = shownSuggestions().getOrNull(pressedStrip) ?: return@Runnable
+        if (s.kind == Suggestion.Kind.EMOJI || s.text.isBlank()) return@Runnable
+        confirmRemove = s.text
+        mode = Mode.NONE
+        pressedStrip = -1
+        actions.onKeyDown()
+        invalidate()
+    }
+
+    /** The three slots as drawn; empty when the toolbar or a clipboard chip has the strip. */
+    private fun shownSuggestions(): List<Suggestion?> {
+        if (toolbarOpen) return emptyList()
+        if (clipChip != null && strip.all.none { it.kind == Suggestion.Kind.TYPED || it.kind == Suggestion.Kind.CORRECTION }) {
+            return emptyList()
+        }
+        return listOf(strip.left, strip.center, strip.right)
+    }
+
     private val repeat = object : Runnable {
         override fun run() {
             when (mode) {
@@ -855,11 +909,23 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         downTime = SystemClock.uptimeMillis()
         repeats = 0
         handler.removeCallbacks(longPress)
+        handler.removeCallbacks(stripLongPress)
         handler.removeCallbacks(repeat)
+        if (confirmRemove != null) {
+            if (y < stripH) {
+                mode = Mode.STRIP
+                pressedStrip = CONFIRM_REMOVE + confirmSlots().indexOfFirst { it.contains(x, y) }.coerceAtLeast(-1)
+                invalidate()
+                return
+            }
+            // Typing on is a "no": the question goes, and the key is typed.
+            confirmRemove = null
+        }
         when {
             y < stripH -> {
                 mode = Mode.STRIP
                 pressedStrip = if (x < stripH) -2 else if (toolbarOpen) -1 else stripSlots().indexOfFirst { it.contains(x, y) }
+                if (pressedStrip >= 0) handler.postDelayed(stripLongPress, STRIP_LONG_PRESS_MS)
             }
             arrowRow && y >= height - arrowH -> {
                 mode = Mode.ARROW
@@ -933,12 +999,14 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
                 }
             }
             Mode.PANEL -> panelMove(y)
+            Mode.STRIP -> if (hypot(x - downX, y - downY) > 12 * dp) handler.removeCallbacks(stripLongPress)
             else -> Unit
         }
     }
 
     private fun up(x: Float, y: Float) {
         handler.removeCallbacks(longPress)
+        handler.removeCallbacks(stripLongPress)
         handler.removeCallbacks(repeat)
         val b = pressedBox
         when (mode) {
@@ -988,6 +1056,15 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
     }
 
     private fun stripUp(x: Float, y: Float) {
+        val word = confirmRemove
+        if (word != null) {
+            if (y > stripH * 1.5f) return
+            val i = confirmSlots().indexOfFirst { it.contains(x, y.coerceAtMost(stripH - 1)) }
+            // Anywhere but "Remove" is a cancel.
+            confirmRemove = null
+            if (i == 0 && pressedStrip == CONFIRM_REMOVE) actions.onRemoveSuggestion(word)
+            return
+        }
         if (y > stripH * 1.5f) return
         if (pressedStrip == -2) {
             toolbarOpen = !toolbarOpen
@@ -1103,6 +1180,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
 
     private fun reset() {
         handler.removeCallbacks(longPress)
+        handler.removeCallbacks(stripLongPress)
         handler.removeCallbacks(repeat)
         mode = Mode.NONE
         pressedBox = null
@@ -1120,5 +1198,11 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         handler.removeCallbacksAndMessages(null)
         velocity?.recycle()
         velocity = null
+    }
+
+    private companion object {
+        /** [pressedStrip] for the confirmation's buttons: remove, then cancel. */
+        const val CONFIRM_REMOVE = 10
+        const val STRIP_LONG_PRESS_MS = 500L
     }
 }

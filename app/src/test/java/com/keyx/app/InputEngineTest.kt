@@ -6,6 +6,7 @@ import com.keyx.app.ime.FieldPolicy
 import com.keyx.app.ime.InputEngine
 import com.keyx.app.ime.Shift
 import com.keyx.app.predict.LearnedModel
+import com.keyx.app.predict.Suggester
 import com.keyx.app.predict.Suggestion
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -303,5 +304,79 @@ class InputEngineTest {
         engine.onShift(false); engine.onShift(false); engine.onShift(true)
         type("NASDQ ")
         assertEquals("NASDQ ", ed.toString())
+    }
+
+    @Test
+    fun domainNamesCloseBackUp() {
+        type("try dry.ai and trelliscards.com today")
+        assertEquals("Try dry.ai and trelliscards.com today", ed.toString())
+    }
+
+    @Test
+    fun countryDomainsChainAndASentenceEndAfterADomainStillSpaces() {
+        type("see bbc.co.uk.then")
+        assertEquals("See bbc.co.uk. Then", ed.toString())
+    }
+
+    @Test
+    fun sentencesStillGetTheirSpace() {
+        type("it works.is it fine.ok")
+        assertEquals("It works. Is it fine. Ok", ed.toString())
+    }
+
+    @Test
+    fun anAcronymTypedInCapsStartsASentence() {
+        type("i like it.")
+        engine.onShift(false); engine.onShift(false); engine.onShift(true)
+        type("AI")
+        engine.onShift(false)
+        type(" rocks")
+        assertEquals("I like it. AI rocks", ed.toString())
+    }
+
+    @Test
+    fun aHabitSpaceAfterTheDotKeepsTheSentence() {
+        type("the end. co")
+        assertEquals("The end. Co", ed.toString())
+    }
+
+    @Test
+    fun protocolsAndWwwAddressesTypeAsTyped() {
+        type("go to https://keyx.example/a,b and www.example.org")
+        assertEquals("Go to https://keyx.example/a,b and www.example.org", ed.toString())
+    }
+
+    @Test
+    fun emailAddressesTypeAsTyped() {
+        type("mail bob@mail.example.com")
+        assertEquals("Mail bob@mail.example.com", ed.toString())
+    }
+
+    @Test
+    fun removedSuggestionStaysGoneUntilTaught() {
+        type("so keyxx")
+        engine.onPick(engine.strip.all.first { it.kind == Suggestion.Kind.TYPED })
+        type("keyx")
+        assertEquals(Suggester.KNOWN_AFTER, learned.count("en", "keyxx"))
+        engine.onRemoveSuggestion("keyxx")
+        assertTrue(engine.strip.all.none { it.text.equals("keyxx", true) })
+        assertEquals(0, learned.count("en", "keyxx"))
+        // Typing it again doesn't bring it back...
+        engine.onCursorMoved()
+        type(" keyxx keyx")
+        assertTrue(engine.strip.all.none { it.text.equals("keyxx", true) })
+        // ...tapping it as typed does.
+        type("x")
+        engine.onPick(engine.strip.all.first { it.kind == Suggestion.Kind.TYPED })
+        assertTrue(!learned.isBlocked("en", "keyxx"))
+    }
+
+    @Test
+    fun removedDictionaryWordIsNotPredictedOrAutocorrectedTo() {
+        type("hel")
+        val word = engine.strip.all.first { it.kind != Suggestion.Kind.TYPED && it.kind != Suggestion.Kind.EMOJI }.text
+        engine.onRemoveSuggestion(word)
+        assertTrue(engine.strip.all.none { it.text.equals(word, true) })
+        assertTrue(LearnedModel.fromJson(learned.toJson()).isBlocked("en", word))
     }
 }
