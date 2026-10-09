@@ -300,6 +300,53 @@ class InputEngineTest {
     }
 
     @Test
+    fun shiftOnATypedWordCyclesItsCase() {
+        type("so hello")
+        engine.onShift(false)
+        assertEquals("So HELLO", ed.toString())
+        assertEquals("HELLO", engine.strip.center?.text)
+        engine.onShift(true)
+        assertEquals("So hello", ed.toString())
+        engine.onShift(false)
+        assertEquals("So Hello", ed.toString())
+        engine.onShift(false)
+        assertEquals("So HELLO", ed.toString())
+        assertEquals(Shift.OFF, engine.shift)
+        engine.onSpace()
+        assertEquals("So HELLO ", ed.toString())
+    }
+
+    @Test
+    fun shiftSkipsACaseTheWordAlreadyHas() {
+        engine.onShift(false); engine.onShift(false); engine.onShift(true)
+        type("NASA")
+        engine.onShift(false) // releases caps lock, the word stays
+        assertEquals(Shift.OFF, engine.shift)
+        assertEquals("NASA", ed.composing)
+        engine.onShift(false) // already ALL CAPS: straight to lowercase
+        assertEquals("nasa", ed.composing)
+        type("x")
+        engine.onShift(false)
+        // A word typed on is a new word: the cycle starts over at ALL CAPS.
+        assertEquals("NASAX", ed.composing)
+    }
+
+    @Test
+    fun aCasePickedWithShiftIsNotAutocorrected() {
+        type("so i")
+        engine.onShift(false) // I
+        engine.onShift(false) // i, on purpose
+        assertEquals("i", engine.strip.center?.text)
+        engine.onSpace()
+        assertEquals("So i ", ed.toString())
+        // The spelling is still fixed.
+        type("helo")
+        repeat(3) { engine.onShift(false) }
+        engine.onSpace()
+        assertEquals("So i Hello ", ed.toString())
+    }
+
+    @Test
     fun acronymsInCapsAreLeftAlone() {
         engine.onShift(false); engine.onShift(false); engine.onShift(true)
         type("NASDQ ")

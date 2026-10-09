@@ -90,6 +90,10 @@ class InputEngine(
     private data class DomainDot(val committed: String, val typed: String)
     private var domainDot: DomainDot? = null
 
+    /** The composing word as shift last re-cased it, and which case that was; see [onShift]. */
+    private var recased: String? = null
+    private var recaseStep = 0
+
     private val language: String get() = suggester?.language ?: ""
 
     fun startInput(policy: FieldPolicy) {
@@ -386,6 +390,11 @@ class InputEngine(
     }
 
     fun onShift(doubleTap: Boolean) {
+        // Caps lock is released as ever; otherwise shift on a word being typed re-cases it.
+        if (composing.isNotEmpty() && shift != Shift.LOCKED) {
+            recaseComposing()
+            return
+        }
         shift = when (shift) {
             Shift.OFF -> Shift.ONCE
             Shift.ONCE -> if (doubleTap) Shift.LOCKED else Shift.OFF
@@ -427,6 +436,41 @@ class InputEngine(
     }
 
     // ---- internals --------------------------------------------------------
+
+    /**
+     * Shift on a word being typed changes the word, not the next letter: ALL CAPS,
+     * then lowercase, then Capitalized, round again. A case that would leave the
+     * word as it is gets skipped, so every press shows a change.
+     */
+    private fun recaseComposing() {
+        val ed = editor ?: return
+        val word = composing.toString()
+        var step = if (word == recased) recaseStep else -1
+        var next = word
+        for (i in 0 until RECASES) {
+            step = (step + 1) % RECASES
+            next = recase(word, step)
+            if (next != word) break
+        }
+        if (next == word) return
+        composing.setLength(0)
+        composing.append(next)
+        if (fromGesture) gestureAlternatives = gestureAlternatives.map { recase(it, step) }
+        ed.batch { ed.setComposing(next) }
+        recased = next
+        recaseStep = step
+        refreshStrip()
+    }
+
+    private fun recase(word: String, step: Int): String = when (step) {
+        0 -> word.uppercase()
+        1 -> word.lowercase()
+        else -> word.lowercase().replaceFirstChar { it.uppercaseChar() }
+    }
+
+    /** The case was picked with shift: autocorrect may fix the spelling, never the case. */
+    private fun caseOnly(correction: String?): Boolean =
+        correction != null && composing.toString() == recased && correction.equals(recased, ignoreCase = true)
 
     /** Whether the space before the cursor is one a mark added; clears the mark either way. */
     private fun takeMarkSpace(ed: Editor): Boolean {
@@ -484,7 +528,7 @@ class InputEngine(
         } else {
             null
         }
-        val word = correction ?: typed
+        val word = if (caseOnly(correction)) typed else correction ?: typed
         val prev = previousWord()
         ed.commit(word + separator)
         lastCorrection = if (correction != null && correction != typed) Correction(typed, word, separator) else null
@@ -492,6 +536,7 @@ class InputEngine(
         keepAsTyped = null
         composing.setLength(0)
         fromGesture = false
+        recased = null
     }
 
     private fun learn(previous: String?, word: String, weight: Int = 1) {
@@ -575,11 +620,12 @@ class InputEngine(
                 emojiOn = options.emojiPredictions,
             )
             else -> sg.predictNext(previousWord(), options.emojiPredictions)
-        }
+        }.let { if (caseOnly(it.autocorrect)) it.copy(left = null, center = Suggestion(composingText, Suggestion.Kind.TYPED), autocorrect = null) else it }
         listener?.invoke()
     }
 
     companion object {
+        private const val RECASES = 3
         private const val CORRECTING_PUNCTUATION = ".,!?;:)]}\"'"
         private const val SWAPPING_PUNCTUATION = ".,!?;:"
         private const val CLOSING_BRACKETS = ")]}"

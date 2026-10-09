@@ -11,8 +11,8 @@ android {
         applicationId = "com.keyx.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 9
-        versionName = "0.2.6"
+        versionCode = 10
+        versionName = "0.2.7"
 
         vectorDrawables.useSupportLibrary = true
     }

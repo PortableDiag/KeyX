@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.7 — 2026-10-08
+
+- **Shift re-cases the word being typed.** With a word in progress, each tap
+  of shift cycles it: ALL CAPS, lowercase, Capitalized, and round again (a
+  case the word already has is skipped). The suggestions follow the case, and
+  autocorrect may still fix the spelling but leaves the picked case alone. With
+  caps lock on, shift releases the lock as before.
+
 ## 0.2.6 — 2026-10-02
 
 - **Long-press a suggestion to remove it.** The strip asks "Remove “word”?";

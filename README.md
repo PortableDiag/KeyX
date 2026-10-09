@@ -13,6 +13,7 @@ permission is `VIBRATE`; nothing typed here can leave the phone through it.
 | Emoji | dedicated emoji key and panel (Emoji ≤14, recents); emoji predictions ("pizza" → 🍕) |
 | Swipe typing | shape-matching decoder over the dictionary; swiped words get spaces automatically, backspace removes one whole |
 | Space bar | flick left/right = switch language; long-press then drag = cursor control; shows the language name |
+| Shift | on a word being typed, cycles its case: ALL CAPS → lowercase → Capitalized; autocorrect keeps the case picked |
 | Rows | number row; **arrow-key row** below the keyboard in SwiftKey's order: ↑ ↓ ← → |
 | Backspace | hold to repeat (whole words after a while); swipe left deletes a word |
 | Long-press | the symbol hint on each key, plus every accent |
@@ -54,7 +55,7 @@ fields get no suggestions. Backup and device transfer are excluded.
   back by tapping it as typed, by *Import words*, or with *Reset learning*.
 - **No license yet:** the repo is public, but until a LICENSE is chosen the code
   is all rights reserved. The dictionary packs are CC BY-SA 4.0 (see below).
-- **Not verified on a real device yet:** long-press removal and domain spacing (0.2.6), space after punctuation (0.2.5), the 0.2.3 erase-and-retype fix, voice hand-off, SMS one-time codes
+- **Not verified on a real device yet:** shift re-casing (0.2.7), long-press removal and domain spacing (0.2.6), space after punctuation (0.2.5), the 0.2.3 erase-and-retype fix, voice hand-off, SMS one-time codes
   surfacing with a third-party IME, the ClipX buttons, and whether the fast-typing
   fixes cure the jam seen on the phone (the emulator could not reproduce it).
 
