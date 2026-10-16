@@ -51,11 +51,13 @@ fields get no suggestions. Backup and device transfer are excluded.
   whose ending is an everyday word (`.is`, `.it`, `.me`, `.to`, `.us`) or isn't
   on the list (`.news`, `.page`) still comes out `example. me`; URL and email
   fields are exempt, and the setting turns it off.
+- **The strip can show one word twice:** typing `th` puts "th" in two of the
+  three bottom slots (typed and center). Seen while building 0.2.9; not new and not fixed.
 - **Removed suggestions** have no list in Settings yet: a removed word comes
   back by tapping it as typed, by *Import words*, or with *Reset learning*.
 - **No license yet:** the repo is public, but until a LICENSE is chosen the code
   is all rights reserved. The dictionary packs are CC BY-SA 4.0 (see below).
-- **Not verified on a real device yet:** long-press removal and domain spacing (0.2.6), space after punctuation (0.2.5), the 0.2.3 erase-and-retype fix, voice hand-off, SMS one-time codes
+- **Not verified on a real device yet:** two rows of suggestions and the `<` `>` keys (0.2.9, 0.2.8), long-press removal and domain spacing (0.2.6), space after punctuation (0.2.5), the 0.2.3 erase-and-retype fix, voice hand-off, SMS one-time codes
   surfacing with a third-party IME, the ClipX buttons, and whether the fast-typing
   fixes cure the jam seen on the phone (the emulator could not reproduce it).
 
