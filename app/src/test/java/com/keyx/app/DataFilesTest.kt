@@ -38,6 +38,13 @@ class DataFilesTest {
     }
 
     @Test
+    fun angleBracketsHaveTheirOwnKeys() {
+        val keys = KeyboardBuilder.build(Page.SYMBOLS_MORE, TestData.layout("en_US"), symbols, BuildOptions())
+            .flatMap { it.keys }.map { it.text }
+        assertTrue("< and > on the =\\< page", keys.containsAll(listOf("<", ">")))
+    }
+
+    @Test
     fun letterPageMatchesTheSwiftKeyShape() {
         val rows = KeyboardBuilder.build(Page.LETTERS, TestData.layout("en_US"), symbols, BuildOptions())
         assertEquals(5, rows.size) // number row + 3 letter rows + bottom

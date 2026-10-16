@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.8 — 2026-10-16
+
+- **`<` and `>` have their own keys** on the `=\<` page, where `¶` and `∆`
+  were, so `<3` is two taps away instead of hidden in the long-press of `(`
+  and `)`. Long-press `<` / `>` for `≤ ‹ «` / `≥ › »`; `¶` moved to `&`
+  (with `§`) and `∆` to `^`.
+
 ## 0.2.7 — 2026-10-08
 
 - **Shift re-cases the word being typed.** With a word in progress, each tap
