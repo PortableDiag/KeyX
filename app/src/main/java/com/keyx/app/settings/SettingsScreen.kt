@@ -57,6 +57,7 @@ private val SWITCH_LABELS = mapOf(
     "autocorrect" to ("Autocorrect" to "Space fixes the word; backspace straight after puts it back"),
     "predictions" to ("Predictions" to "Completions and next-word suggestions in the strip"),
     "emoji_predictions" to ("Emoji predictions" to "\"pizza\" offers 🍕"),
+    "two_suggestion_rows" to ("Two rows of suggestions" to "Six words instead of three, in the same height"),
     "swipe" to ("Swipe typing" to "Draw a word across the letters"),
     "auto_caps" to ("Auto-capitalize" to "Capital at the start of a sentence"),
     "double_space_period" to ("Double-space period" to "Two spaces type \". \""),

@@ -19,6 +19,8 @@ data class Strip(
     val right: Suggestion? = null,
     /** Set when the space bar will replace the typed word with this one. */
     val autocorrect: String? = null,
+    /** The next words after these three, for the second row of suggestions. */
+    val extra: List<Suggestion> = emptyList(),
 ) {
     val all: List<Suggestion> get() = listOfNotNull(left, center, right)
 
@@ -110,15 +112,18 @@ class Suggester(
             rightWord != null -> Suggestion(rightWord, Suggestion.Kind.COMPLETION)
             else -> null
         }
-        return Strip(left, center, right, correction)
+        val shown = setOfNotNull(left?.text, right?.text)
+        val extra = others.filter { it !in shown }.take(EXTRA)
+            .map { Suggestion(it, Suggestion.Kind.COMPLETION) }
+        return Strip(left, center, right, correction, extra)
     }
 
     /** Next-word predictions after a committed word, or the commonest words with no context. */
     fun predictNext(previous: String?, emojiOn: Boolean): Strip {
         val words = ArrayList<String>()
-        if (previous != null) words += learned.next(language, previous, 3)
-        for (e in dictionary.top(8)) {
-            if (words.size >= 3) break
+        if (previous != null) words += learned.next(language, previous, 3 + EXTRA)
+        for (e in dictionary.top(8 + EXTRA)) {
+            if (words.size >= 3 + EXTRA) break
             if (words.none { it.equals(e.word, true) } && !learned.isBlocked(language, e.word)) words += e.word
         }
         val emojiFor = if (emojiOn && previous != null) emoji?.forWord(previous) else null
@@ -127,6 +132,7 @@ class Suggester(
             left = p(1),
             center = p(0),
             right = emojiFor?.let { Suggestion(it, Suggestion.Kind.EMOJI) } ?: p(2),
+            extra = (if (emojiFor != null) 2 else 3).let { from -> (from until from + EXTRA).mapNotNull { p(it) } },
         )
     }
 
@@ -244,6 +250,8 @@ class Suggester(
 
     companion object {
         const val KNOWN_AFTER = 2
+        /** Suggestions on the second row. */
+        const val EXTRA = 3
         private const val EDIT_WEIGHT = 4.5
         private const val COMPLETION_PENALTY = 1.5
         private const val LEARNED_WEIGHT = 2.5

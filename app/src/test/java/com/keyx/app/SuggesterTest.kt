@@ -24,6 +24,20 @@ class SuggesterTest {
     }
 
     @Test
+    fun theSecondRowHoldsThreeMoreWords() {
+        for (strip in listOf(
+            en.forWord("th", null, autocorrect = true, emojiOn = false),
+            en.predictNext(null, emojiOn = false),
+        )) {
+            assertEquals(3, strip.extra.size)
+            val shown = strip.all.map { it.text.lowercase() }.toSet()
+            val extra = strip.extra.map { it.text.lowercase() }
+            assertEquals("no word twice: $extra", 3, extra.toSet().size)
+            assertTrue("not already shown: $shown $extra", extra.none { it in shown })
+        }
+    }
+
+    @Test
     fun realWordsAreNeverCorrected() {
         assertNull(corrected("form"))
         assertNull(corrected("from"))

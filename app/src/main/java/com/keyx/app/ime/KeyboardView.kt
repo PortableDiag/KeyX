@@ -105,6 +105,9 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
     var quickDelete = true
     var arrowRow = true
         set(v) { field = v; requestLayout() }
+    /** Suggestions in two stacked rows, in the strip's one height. */
+    var twoRows = false
+        set(v) { field = v; invalidate() }
     var heightPercent = 100
         set(v) { field = v; requestLayout() }
     var lettersPage = true
@@ -450,10 +453,15 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
     private val tools = listOf(Tool.CLIPBOARD to "clipboard", Tool.EMOJI to "emoji", Tool.VOICE to "voice",
         Tool.SETTINGS to "settings", Tool.HIDE to "hide")
 
+    /** Left, center, right; with two rows those sit on the bottom one and the extras above. */
     private fun stripSlots(): List<RectF> {
         val left = stripH
         val w = (width - left) / 3f
-        return (0 until 3).map { RectF(left + it * w, 0f, left + (it + 1) * w, stripH) }
+        if (!twoRows) return (0 until 3).map { RectF(left + it * w, 0f, left + (it + 1) * w, stripH) }
+        val mid = stripH / 2
+        val bottom = (0 until 3).map { RectF(left + it * w, mid, left + (it + 1) * w, stripH) }
+        val top = (0 until 3).map { RectF(left + it * w, 0f, left + (it + 1) * w, mid) }
+        return bottom + top
     }
 
     private fun toolSlots(): List<RectF> {
@@ -515,11 +523,13 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
             return
         }
         val slots = stripSlots()
-        listOf(strip.left, strip.center, strip.right).forEachIndexed { i, s ->
+        // Two rows share the one height; the words shrink with them, a little less than half.
+        val scale = if (twoRows) 0.62f else 1f
+        shownSuggestions().forEachIndexed { i, s ->
             if (s == null) return@forEachIndexed
             val slot = slots[i]
             t.functionBorder?.let { border ->
-                tmp.set(slot.left + padX, slot.top + stripH * 0.12f, slot.right - padX, slot.bottom - stripH * 0.12f)
+                tmp.set(slot.left + padX, slot.top + slot.height() * 0.12f, slot.right - padX, slot.bottom - slot.height() * 0.12f)
                 outline(canvas, t, tmp, border)
             }
             if (pressedStrip == i) {
@@ -527,7 +537,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
                 canvas.drawRect(slot, fill)
             }
             val label = if (s.kind == Suggestion.Kind.TYPED && i != 1) "“${s.text}”" else s.text
-            val size = stripH * if (i == 1) 0.5f else 0.44f
+            val size = stripH * scale * if (i == 1) 0.5f else 0.44f
             text.textSize = size
             val shown = TextUtils.ellipsize(label, text, slot.width() - 8 * dp, TextUtils.TruncateAt.END)
             centerText(canvas, shown.toString(), slot.centerX(), slot.centerY(), size,
@@ -827,13 +837,14 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         invalidate()
     }
 
-    /** The three slots as drawn; empty when the toolbar or a clipboard chip has the strip. */
+    /** The slots as drawn, in [stripSlots] order; empty when the toolbar or a clipboard chip has the strip. */
     private fun shownSuggestions(): List<Suggestion?> {
         if (toolbarOpen) return emptyList()
         if (clipChip != null && strip.all.none { it.kind == Suggestion.Kind.TYPED || it.kind == Suggestion.Kind.CORRECTION }) {
             return emptyList()
         }
-        return listOf(strip.left, strip.center, strip.right)
+        val main = listOf(strip.left, strip.center, strip.right)
+        return if (twoRows) main + List(3) { strip.extra.getOrNull(it) } else main
     }
 
     private val repeat = object : Runnable {
@@ -1083,7 +1094,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
             actions.onPasteClip(chip)
             return
         }
-        val s = listOf(strip.left, strip.center, strip.right).getOrNull(pressedStrip) ?: return
+        val s = shownSuggestions().getOrNull(pressedStrip) ?: return
         actions.onPick(s)
     }
 

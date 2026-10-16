@@ -125,6 +125,7 @@ class KeyXService : InputMethodService(), KeyboardActions {
         v.cursorControl = settings.cursorControl
         v.quickDelete = settings.quickDelete
         v.arrowRow = settings.arrowRow
+        v.twoRows = settings.twoSuggestionRows
         v.heightPercent = settings.heightPercent
         v.languageCount = settings.languages.size
         v.clipXInstalled = clipXInstalled()
@@ -261,7 +262,7 @@ class KeyXService : InputMethodService(), KeyboardActions {
         val d = decoder ?: return
         val dict = dictionary ?: return
         val lang = engine.suggester?.language ?: return
-        val words = d.decode(trace, dict, bonus = { w -> 2.0 * kotlin.math.ln(1.0 + data.learned.count(lang, w)) })
+        val words = d.decode(trace, dict, bonus = { w -> 2.0 * kotlin.math.ln(1.0 + data.learned.count(lang, w)) }, limit = 6)
         engine.onGesture(words.filterNot { data.learned.isBlocked(lang, it) })
     }
 

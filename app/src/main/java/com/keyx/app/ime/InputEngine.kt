@@ -611,6 +611,7 @@ class InputEngine(
                 left = gestureAlternatives.getOrNull(1)?.let { Suggestion(it, Suggestion.Kind.COMPLETION) },
                 center = Suggestion(composing.toString(), Suggestion.Kind.TYPED),
                 right = gestureAlternatives.getOrNull(2)?.let { Suggestion(it, Suggestion.Kind.COMPLETION) },
+                extra = gestureAlternatives.drop(3).take(Suggester.EXTRA).map { Suggestion(it, Suggestion.Kind.COMPLETION) },
             )
             composing.isNotEmpty() -> sg.forWord(
                 composing.toString(),

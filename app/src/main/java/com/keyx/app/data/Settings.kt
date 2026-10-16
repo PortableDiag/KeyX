@@ -16,6 +16,7 @@ data class Settings(
     val numberRow: Boolean = true,
     val autocorrect: Boolean = true,
     val predictions: Boolean = true,
+    val twoSuggestionRows: Boolean = false,
     val emojiPredictions: Boolean = true,
     val emojiKey: Boolean = true,
     val swipe: Boolean = true,
@@ -51,6 +52,7 @@ data class Settings(
         val SWITCHES: List<Pair<String, (Settings) -> Boolean>> = listOf(
             "autocorrect" to { s: Settings -> s.autocorrect },
             "predictions" to { s: Settings -> s.predictions },
+            "two_suggestion_rows" to { s: Settings -> s.twoSuggestionRows },
             "emoji_predictions" to { s: Settings -> s.emojiPredictions },
             "swipe" to { s: Settings -> s.swipe },
             "auto_caps" to { s: Settings -> s.autoCaps },
@@ -82,6 +84,7 @@ data class Settings(
                 numberRow = b("number_row", d.numberRow),
                 autocorrect = b("autocorrect", d.autocorrect),
                 predictions = b("predictions", d.predictions),
+                twoSuggestionRows = b("two_suggestion_rows", d.twoSuggestionRows),
                 emojiPredictions = b("emoji_predictions", d.emojiPredictions),
                 emojiKey = b("emoji_key", d.emojiKey),
                 swipe = b("swipe", d.swipe),

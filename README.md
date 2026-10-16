@@ -9,7 +9,7 @@ permission is `VIBRATE`; nothing typed here can leave the phone through it.
 | | |
 |---|---|
 | Autocorrect | on space and punctuation; neighboring-key slips, doubled letters, missing apostrophes and accents are cheap edits. Backspace straight after a correction puts the typed word back and teaches it |
-| Predictions | completions while typing, next-word predictions after; the strip is SwiftKey's shape — center is what space commits, left shows the word as typed when a correction is pending. Long-press a suggestion to remove it (asks first) |
+| Predictions | completions while typing, next-word predictions after; the strip is SwiftKey's shape — center is what space commits, left shows the word as typed when a correction is pending. Long-press a suggestion to remove it (asks first). Optional second row: six words in the same height |
 | Emoji | dedicated emoji key and panel (Emoji ≤14, recents); emoji predictions ("pizza" → 🍕) |
 | Swipe typing | shape-matching decoder over the dictionary; swiped words get spaces automatically, backspace removes one whole |
 | Space bar | flick left/right = switch language; long-press then drag = cursor control; shows the language name |

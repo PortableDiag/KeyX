@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.9 — 2026-10-16
+
+- **Two rows of suggestions** (Settings, off by default). A second row of
+  three words stacks above the usual three, and the strip keeps its height:
+  each row takes half and the words shrink to fit. The bottom row is the
+  familiar left / center / right; the top row holds the next three
+  completions, predictions or swipe alternatives. Tap or long-press either
+  row as before.
+
 ## 0.2.8 — 2026-10-16
 
 - **`<` and `>` have their own keys** on the `=\<` page, where `¶` and `∆`
