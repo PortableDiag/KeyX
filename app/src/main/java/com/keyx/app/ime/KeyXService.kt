@@ -126,6 +126,7 @@ class KeyXService : InputMethodService(), KeyboardActions {
         v.quickDelete = settings.quickDelete
         v.arrowRow = settings.arrowRow
         v.twoRows = settings.twoSuggestionRows
+        v.wordGridButton = settings.wordGrid
         v.heightPercent = settings.heightPercent
         v.languageCount = settings.languages.size
         v.clipXInstalled = clipXInstalled()
@@ -249,6 +250,10 @@ class KeyXService : InputMethodService(), KeyboardActions {
     }
 
     override fun onPick(s: Suggestion) = engine.onPick(s)
+
+    override fun onPanel(panel: Panel) {
+        engine.wordGrid = panel == Panel.WORDS
+    }
 
     override fun onRemoveSuggestion(word: String) = engine.onRemoveSuggestion(word)
 

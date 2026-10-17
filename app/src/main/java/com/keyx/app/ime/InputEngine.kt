@@ -56,6 +56,10 @@ class InputEngine(
     var strip: Strip = Strip.EMPTY
         private set
 
+    /** The keys are a grid of whole words, so the strip carries enough of them to fill it. */
+    var wordGrid = false
+        set(v) { if (field != v) { field = v; refreshStrip() } }
+
     private val composing = StringBuilder()
     val composingText: String get() = composing.toString()
 
@@ -605,13 +609,14 @@ class InputEngine(
 
     fun refreshStrip() {
         val sg = suggester
+        sg?.extraCount = if (wordGrid) Suggester.GRID_EXTRA else Suggester.EXTRA
         strip = when {
             !policy.suggest || !options.predictions || sg == null -> Strip.EMPTY
             fromGesture -> Strip(
                 left = gestureAlternatives.getOrNull(1)?.let { Suggestion(it, Suggestion.Kind.COMPLETION) },
                 center = Suggestion(composing.toString(), Suggestion.Kind.TYPED),
                 right = gestureAlternatives.getOrNull(2)?.let { Suggestion(it, Suggestion.Kind.COMPLETION) },
-                extra = gestureAlternatives.drop(3).take(Suggester.EXTRA).map { Suggestion(it, Suggestion.Kind.COMPLETION) },
+                extra = gestureAlternatives.drop(3).take(sg?.extraCount ?: Suggester.EXTRA).map { Suggestion(it, Suggestion.Kind.COMPLETION) },
             )
             composing.isNotEmpty() -> sg.forWord(
                 composing.toString(),

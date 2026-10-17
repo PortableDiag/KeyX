@@ -2,6 +2,7 @@ package com.keyx.app.predict
 
 import java.text.Normalizer
 import kotlin.math.ln
+import kotlin.math.max
 import kotlin.math.min
 
 data class Suggestion(val text: String, val kind: Kind) {
@@ -41,12 +42,16 @@ class Suggester(
         !learned.isBlocked(language, word) &&
             (dictionary.contains(word) || learned.count(language, word) >= KNOWN_AFTER)
 
+    /** How many words to find beyond the strip's three: a second row's worth, or the word grid's. */
+    var extraCount = EXTRA
+
     private data class Query(
         val typed: String,
         val previous: String?,
         val autocorrect: Boolean,
         val emojiOn: Boolean,
         val learnedVersion: Long,
+        val extraCount: Int,
     )
     private var lastQuery: Query? = null
     private var lastStrip = Strip.EMPTY
@@ -56,7 +61,7 @@ class Suggester(
      * the correction; the second ask is answered from the first.
      */
     fun forWord(typed: String, previous: String?, autocorrect: Boolean, emojiOn: Boolean): Strip {
-        val q = Query(typed, previous, autocorrect, emojiOn, learned.version)
+        val q = Query(typed, previous, autocorrect, emojiOn, learned.version, extraCount)
         if (q == lastQuery) return lastStrip
         return compute(typed, previous, autocorrect, emojiOn).also { lastQuery = q; lastStrip = it }
     }
@@ -73,10 +78,10 @@ class Suggester(
             if (cur == null || cur.second < score) ranked[key] = form to score
         }
 
-        for (e in dictionary.completions(lower, 12)) {
+        for (e in dictionary.completions(lower, max(12, extraCount + 9))) {
             if (e.lower != lower) offer(e.word, prior(e.word, previous) - COMPLETION_PENALTY)
         }
-        for ((w, _) in learned.completions(language, lower, 6)) {
+        for ((w, _) in learned.completions(language, lower, max(6, extraCount))) {
             if (!w.equals(typed, true)) offer(w, prior(w, previous) - COMPLETION_PENALTY)
         }
         val fuzzy = corrections(lower, previous).filterNot { learned.isBlocked(language, it.first) }
@@ -113,7 +118,7 @@ class Suggester(
             else -> null
         }
         val shown = setOfNotNull(left?.text, right?.text)
-        val extra = others.filter { it !in shown }.take(EXTRA)
+        val extra = others.filter { it !in shown }.take(extraCount)
             .map { Suggestion(it, Suggestion.Kind.COMPLETION) }
         return Strip(left, center, right, correction, extra)
     }
@@ -121,9 +126,9 @@ class Suggester(
     /** Next-word predictions after a committed word, or the commonest words with no context. */
     fun predictNext(previous: String?, emojiOn: Boolean): Strip {
         val words = ArrayList<String>()
-        if (previous != null) words += learned.next(language, previous, 3 + EXTRA)
-        for (e in dictionary.top(8 + EXTRA)) {
-            if (words.size >= 3 + EXTRA) break
+        if (previous != null) words += learned.next(language, previous, 3 + extraCount)
+        for (e in dictionary.top(8 + extraCount * 2)) {
+            if (words.size >= 3 + extraCount) break
             if (words.none { it.equals(e.word, true) } && !learned.isBlocked(language, e.word)) words += e.word
         }
         val emojiFor = if (emojiOn && previous != null) emoji?.forWord(previous) else null
@@ -132,7 +137,7 @@ class Suggester(
             left = p(1),
             center = p(0),
             right = emojiFor?.let { Suggestion(it, Suggestion.Kind.EMOJI) } ?: p(2),
-            extra = (if (emojiFor != null) 2 else 3).let { from -> (from until from + EXTRA).mapNotNull { p(it) } },
+            extra = (if (emojiFor != null) 2 else 3).let { from -> (from until from + extraCount).mapNotNull { p(it) } },
         )
     }
 
@@ -252,6 +257,8 @@ class Suggester(
         const val KNOWN_AFTER = 2
         /** Suggestions on the second row. */
         const val EXTRA = 3
+        /** Words beyond the strip's three that the word grid asks for. */
+        const val GRID_EXTRA = 21
         private const val EDIT_WEIGHT = 4.5
         private const val COMPLETION_PENALTY = 1.5
         private const val LEARNED_WEIGHT = 2.5

@@ -42,6 +42,7 @@ interface KeyboardActions {
     fun onVoice()
     fun onArrow(keyCode: Int)
     fun onPick(s: Suggestion)
+    fun onPanel(panel: Panel)
     fun onRemoveSuggestion(word: String)
     fun onPasteClip(text: String)
     fun onGesture(trace: List<GestureDecoder.Point>)
@@ -54,7 +55,7 @@ interface KeyboardActions {
 }
 
 enum class Tool { CLIPBOARD, EMOJI, VOICE, SETTINGS, HIDE }
-enum class Panel { KEYS, EMOJI, CLIPBOARD }
+enum class Panel { KEYS, EMOJI, CLIPBOARD, WORDS }
 
 /**
  * The whole keyboard as one view: candidate strip, keys, arrow row, and the
@@ -86,6 +87,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         set(v) { field = v; invalidate() }
     var panel = Panel.KEYS
         set(v) {
+            val changed = field != v
             field = v
             panelScroll = 0f
             confirmRemove = null
@@ -93,6 +95,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
             toolbarOpen = false
             requestLayout()
             invalidate()
+            if (changed) actions.onPanel(v)
         }
     var emojiGroups: List<Pair<String, List<String>>> = emptyList()
         set(v) { field = v; emojiLayoutDirty = true; invalidate() }
@@ -108,6 +111,13 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
     /** Suggestions in two stacked rows, in the strip's one height. */
     var twoRows = false
         set(v) { field = v; invalidate() }
+    /** The strip's right end holds a button that turns the keys into a grid of words. */
+    var wordGridButton = false
+        set(v) {
+            field = v
+            if (!v && panel == Panel.WORDS) panel = Panel.KEYS
+            invalidate()
+        }
     var heightPercent = 100
         set(v) { field = v; requestLayout() }
     var lettersPage = true
@@ -204,6 +214,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
             }
             Panel.EMOJI -> drawEmojiPanel(canvas, t)
             Panel.CLIPBOARD -> drawClipPanel(canvas, t)
+            Panel.WORDS -> drawWordGrid(canvas, t)
         }
         if (arrowRow) drawArrows(canvas, t)
         drawPopups(canvas, t)
@@ -456,7 +467,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
     /** Left, center, right; with two rows those sit on the bottom one and the extras above. */
     private fun stripSlots(): List<RectF> {
         val left = stripH
-        val w = (width - left) / 3f
+        val w = (stripRight() - left) / 3f
         if (!twoRows) return (0 until 3).map { RectF(left + it * w, 0f, left + (it + 1) * w, stripH) }
         val mid = stripH / 2
         val bottom = (0 until 3).map { RectF(left + it * w, mid, left + (it + 1) * w, stripH) }
@@ -464,9 +475,12 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         return bottom + top
     }
 
+    /** Where the suggestions end: the word-grid button, when shown, takes the last square. */
+    private fun stripRight(): Float = width - if (wordGridButton) stripH else 0f
+
     private fun toolSlots(): List<RectF> {
         val left = stripH
-        val w = (width - left) / tools.size
+        val w = (stripRight() - left) / tools.size
         return tools.indices.map { RectF(left + it * w, 0f, left + (it + 1) * w, stripH) }
     }
 
@@ -507,6 +521,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         fill.color = t.keyPressed
         canvas.drawCircle(stripH / 2, stripH / 2, r, fill)
         upTriangle(canvas, stripH / 2, stripH / 2, r * 0.4f, up = !toolbarOpen, color = t.functionText)
+        if (wordGridButton) drawGridButton(canvas, t)
 
         if (toolbarOpen) {
             toolSlots().forEachIndexed { i, s ->
@@ -516,7 +531,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         }
         val chip = clipChip
         if (chip != null && strip.all.none { it.kind == Suggestion.Kind.TYPED || it.kind == Suggestion.Kind.CORRECTION }) {
-            val s = RectF(stripH, 0f, width.toFloat(), stripH)
+            val s = RectF(stripH, 0f, stripRight(), stripH)
             text.textSize = stripH * 0.34f
             val shown = TextUtils.ellipsize("paste: " + chip.replace('\n', ' '), text, s.width() - 24 * dp, TextUtils.TruncateAt.END)
             centerText(canvas, shown.toString(), s.centerX(), s.centerY(), stripH * 0.34f, t.candidateText)
@@ -542,6 +557,24 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
             val shown = TextUtils.ellipsize(label, text, slot.width() - 8 * dp, TextUtils.TruncateAt.END)
             centerText(canvas, shown.toString(), slot.centerX(), slot.centerY(), size,
                 if (i == 1) t.candidateHighlight else t.candidateText)
+        }
+    }
+
+    /** A three-by-three of small squares; filled in while the grid is up. */
+    private fun drawGridButton(canvas: Canvas, t: KeyboardTheme) {
+        val cx = width - stripH / 2
+        val cy = stripH / 2
+        if (panel == Panel.WORDS || pressedStrip == GRID_BUTTON) {
+            fill.color = t.keyPressed
+            canvas.drawCircle(cx, cy, stripH * 0.3f, fill)
+        }
+        val cell = stripH * 0.11f
+        val gap = stripH * 0.04f
+        fill.color = if (panel == Panel.WORDS) t.accent else t.functionText
+        for (row in -1..1) for (col in -1..1) {
+            val x = cx + col * (cell + gap)
+            val y = cy + row * (cell + gap)
+            canvas.drawRect(x - cell / 2, y - cell / 2, x + cell / 2, y + cell / 2, fill)
         }
     }
 
@@ -722,7 +755,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
             centerText(canvas, e, r.centerX(), r.centerY() + top, r.height() * 0.62f, t.keyText)
         }
         canvas.restore()
-        drawPanelControls(canvas, t, listOf("ABC", " ", "⌫"))
+        drawPanelControls(canvas, t)
     }
 
     private fun controlSlots(n: Int, weights: List<Float>? = null): List<RectF> {
@@ -733,14 +766,30 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         return ws.map { w -> RectF(x, top, x + unit * w, panelBottom()).also { x += unit * w } }
     }
 
-    private fun drawPanelControls(canvas: Canvas, t: KeyboardTheme, labels: List<String>) {
-        val slots = controlSlots(labels.size, if (panel == Panel.EMOJI) listOf(1.5f, 5f, 1.5f) else null)
+    private fun controlLabels(): List<String> = when (panel) {
+        Panel.EMOJI -> listOf("ABC", " ", "⌫")
+        Panel.WORDS -> listOf("ABC", ",", " ", ".", "⌫", "↵")
+        else -> clipControls()
+    }
+
+    private fun controlWeights(): List<Float>? = when (panel) {
+        Panel.EMOJI -> listOf(1.5f, 5f, 1.5f)
+        Panel.WORDS -> listOf(1.5f, 1f, 4f, 1f, 1.5f, 1.5f)
+        else -> null
+    }
+
+    private fun drawPanelControls(canvas: Canvas, t: KeyboardTheme) {
+        val labels = controlLabels()
+        val slots = controlSlots(labels.size, controlWeights())
         slots.forEachIndexed { i, r ->
             val pressed = pressedControl == i
             drawFace(canvas, t, r, pressed, if (labels[i] == " ") t.keyBorder else t.functionBorder)
             when (labels[i]) {
                 "⌫" -> drawBackspace(canvas, t, r.centerX(), r.centerY(), r.height() * 0.3f)
                 " " -> Unit
+                "↵" -> enterLabel?.let { centerText(canvas, it, r.centerX(), r.centerY(), r.height() * 0.27f, t.functionText) }
+                    ?: drawEnter(canvas, t, r.centerX(), r.centerY(), r.height() * 0.3f)
+                ",", "." -> centerText(canvas, labels[i], r.centerX(), r.centerY(), r.height() * 0.4f, t.keyText)
                 else -> centerText(canvas, labels[i], r.centerX(), r.centerY(), r.height() * 0.28f, t.functionText)
             }
         }
@@ -772,7 +821,50 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         }
         contentHeight = clips.size * clipRowH()
         canvas.restore()
-        drawPanelControls(canvas, t, clipControls())
+        drawPanelControls(canvas, t)
+    }
+
+    // ---- word grid ----------------------------------------------------------------
+
+    private val wordCols = 3
+
+    /** Everything the strip knows, the word space would commit first; each word once. */
+    private fun gridWords(): List<Suggestion> =
+        (listOf(strip.center, strip.left, strip.right) + strip.extra).filterNotNull()
+            .filter { it.text.isNotBlank() }.distinctBy { it.text }
+
+    /** The cells over the keys' area, above the controls, row by row. */
+    private fun wordCells(): List<RectF> {
+        val top = panelTop()
+        val h = gridBottom() - top
+        val rows = max(2, (h / (40 * dp)).toInt())
+        val cw = width / wordCols.toFloat()
+        val ch = h / rows
+        return (0 until rows * wordCols).map { i ->
+            val c = i % wordCols
+            val r = i / wordCols
+            RectF(c * cw, top + r * ch, (c + 1) * cw, top + (r + 1) * ch)
+        }
+    }
+
+    private fun drawWordGrid(canvas: Canvas, t: KeyboardTheme) {
+        val words = gridWords()
+        val cells = wordCells()
+        if (words.isEmpty()) {
+            centerText(canvas, "No suggestions here", width / 2f, (panelTop() + gridBottom()) / 2,
+                rowUnit * 0.3f, t.hintText)
+        }
+        words.take(cells.size).forEachIndexed { i, s ->
+            val r = cells[i]
+            drawFace(canvas, t, r, pressedWord == i, t.keyBorder)
+            val label = if (s.kind == Suggestion.Kind.TYPED) "“${s.text}”" else s.text
+            val size = min(r.height() * 0.42f, 20 * dp)
+            text.textSize = size
+            val shown = TextUtils.ellipsize(label, text, r.width() - 10 * dp, TextUtils.TruncateAt.END)
+            centerText(canvas, shown.toString(), r.centerX(), r.centerY(), size,
+                if (i == 0) t.candidateHighlight else t.keyText)
+        }
+        drawPanelControls(canvas, t)
     }
 
     // ---- touch ------------------------------------------------------------------
@@ -789,6 +881,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
     private var pressedArrow = -1
     private var pressedControl = -1
     private var pressedClip = -1
+    private var pressedWord = -1
     private var cursorAnchorX = 0f
     private var cursorSent = 0
     private var repeats = 0
@@ -935,7 +1028,12 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         when {
             y < stripH -> {
                 mode = Mode.STRIP
-                pressedStrip = if (x < stripH) -2 else if (toolbarOpen) -1 else stripSlots().indexOfFirst { it.contains(x, y) }
+                pressedStrip = when {
+                    x < stripH -> -2
+                    wordGridButton && x >= stripRight() -> GRID_BUTTON
+                    toolbarOpen -> -1
+                    else -> stripSlots().indexOfFirst { it.contains(x, y) }
+                }
                 if (pressedStrip >= 0) handler.postDelayed(stripLongPress, STRIP_LONG_PRESS_MS)
             }
             arrowRow && y >= height - arrowH -> {
@@ -1081,6 +1179,10 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
             toolbarOpen = !toolbarOpen
             return
         }
+        if (pressedStrip == GRID_BUTTON) {
+            panel = if (panel == Panel.WORDS) Panel.KEYS else Panel.WORDS
+            return
+        }
         if (toolbarOpen) {
             val i = toolSlots().indexOfFirst { x >= it.left && x < it.right }
             if (i >= 0) {
@@ -1106,17 +1208,22 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         lastPanelY = y
         mode = Mode.PANEL
         pressedClip = -1
+        pressedWord = -1
         pressedControl = -1
         if (y >= gridBottom()) {
             mode = Mode.CONTROL
-            val labels = if (panel == Panel.EMOJI) 3 else clipControls().size
-            val slots = controlSlots(labels, if (panel == Panel.EMOJI) listOf(1.5f, 5f, 1.5f) else null)
+            val labels = controlLabels()
+            val slots = controlSlots(labels.size, controlWeights())
             pressedControl = slots.indexOfFirst { x >= it.left && x < it.right }
             actions.onKeyDown()
-            if (panel == Panel.EMOJI && pressedControl == 2) {
+            if (labels.getOrNull(pressedControl) == "⌫") {
                 mode = Mode.BACKSPACE
                 handler.postDelayed(repeat, 400)
             }
+        } else if (panel == Panel.WORDS) {
+            val i = wordCells().indexOfFirst { it.contains(x, y) }
+            pressedWord = if (i in gridWords().indices) i else -1
+            if (pressedWord >= 0) actions.onKeyDown()
         } else if (panel == Panel.CLIPBOARD && y >= gridTop()) {
             val i = ((y - gridTop() + panelScroll) / clipRowH()).toInt()
             pressedClip = if (i in clips.indices) i else -1
@@ -1124,6 +1231,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
     }
 
     private fun panelMove(y: Float) {
+        if (panel == Panel.WORDS) return
         if (!panelDragging && abs(y - downY) > 8 * dp && downY >= gridTop()) {
             panelDragging = true
             pressedClip = -1
@@ -1163,19 +1271,16 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
                 emojiCells.firstOrNull { it.second.contains(x, cy) }?.let { actions.onEmoji(it.first) }
             }
             panel == Panel.CLIPBOARD -> clips.getOrNull(pressedClip)?.let { actions.onPasteClip(it) }
+            panel == Panel.WORDS -> gridWords().getOrNull(pressedWord)?.let { actions.onPick(it) }
         }
     }
 
     private fun controlTap(i: Int) {
-        if (panel == Panel.EMOJI) {
-            when (i) {
-                0 -> panel = Panel.KEYS
-                1 -> actions.onSpace()
-            }
-            return
-        }
-        when (clipControls().getOrNull(i)) {
+        when (controlLabels().getOrNull(i)) {
             "ABC" -> panel = Panel.KEYS
+            " " -> actions.onSpace()
+            ",", "." -> actions.onChar(controlLabels()[i])
+            "↵" -> actions.onEnter()
             "open ClipX" -> actions.onOpenClipX()
             "save to ClipX" -> clips.firstOrNull()?.let { actions.onSaveToClipX(it) }
             "clear" -> actions.onClearClips()
@@ -1199,6 +1304,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         pressedArrow = -1
         pressedControl = -1
         pressedClip = -1
+        pressedWord = -1
         closePopup()
         trail.clear()
         invalidate()
@@ -1214,6 +1320,8 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
     private companion object {
         /** [pressedStrip] for the confirmation's buttons: remove, then cancel. */
         const val CONFIRM_REMOVE = 10
+        /** [pressedStrip] for the word-grid button. */
+        const val GRID_BUTTON = -3
         const val STRIP_LONG_PRESS_MS = 500L
     }
 }

@@ -10,6 +10,7 @@ permission is `VIBRATE`; nothing typed here can leave the phone through it.
 |---|---|
 | Autocorrect | on space and punctuation; neighboring-key slips, doubled letters, missing apostrophes and accents are cheap edits. Backspace straight after a correction puts the typed word back and teaches it |
 | Predictions | completions while typing, next-word predictions after; the strip is SwiftKey's shape — center is what space commits, left shows the word as typed when a correction is pending. Long-press a suggestion to remove it (asks first). Optional second row: six words in the same height |
+| Word grid | optional button at the strip's right: the keys become a grid of whole words to tap, with comma, space, period, backspace and enter below |
 | Emoji | dedicated emoji key and panel (Emoji ≤14, recents); emoji predictions ("pizza" → 🍕) |
 | Swipe typing | shape-matching decoder over the dictionary; swiped words get spaces automatically, backspace removes one whole |
 | Space bar | flick left/right = switch language; long-press then drag = cursor control; shows the language name |
@@ -57,7 +58,7 @@ fields get no suggestions. Backup and device transfer are excluded.
   back by tapping it as typed, by *Import words*, or with *Reset learning*.
 - **No license yet:** the repo is public, but until a LICENSE is chosen the code
   is all rights reserved. The dictionary packs are CC BY-SA 4.0 (see below).
-- **Not verified on a real device yet:** two rows of suggestions and the `<` `>` keys (0.2.9, 0.2.8), long-press removal and domain spacing (0.2.6), space after punctuation (0.2.5), the 0.2.3 erase-and-retype fix, voice hand-off, SMS one-time codes
+- **Not verified on a real device yet:** the word grid (0.2.10), two rows of suggestions and the `<` `>` keys (0.2.9, 0.2.8), long-press removal and domain spacing (0.2.6), space after punctuation (0.2.5), the 0.2.3 erase-and-retype fix, voice hand-off, SMS one-time codes
   surfacing with a third-party IME, the ClipX buttons, and whether the fast-typing
   fixes cure the jam seen on the phone (the emulator could not reproduce it).
 

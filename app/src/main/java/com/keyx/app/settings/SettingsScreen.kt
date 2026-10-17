@@ -58,6 +58,7 @@ private val SWITCH_LABELS = mapOf(
     "predictions" to ("Predictions" to "Completions and next-word suggestions in the strip"),
     "emoji_predictions" to ("Emoji predictions" to "\"pizza\" offers 🍕"),
     "two_suggestion_rows" to ("Two rows of suggestions" to "Six words instead of three, in the same height"),
+    "word_grid" to ("Word grid button" to "A button at the strip's right turns the keys into a grid of whole words"),
     "swipe" to ("Swipe typing" to "Draw a word across the letters"),
     "auto_caps" to ("Auto-capitalize" to "Capital at the start of a sentence"),
     "double_space_period" to ("Double-space period" to "Two spaces type \". \""),

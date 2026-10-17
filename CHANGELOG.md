@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.10 — 2026-10-16
+
+- **Word grid** (Settings → *Word grid button*, off by default). A button at
+  the strip's right end swaps the keys for a grid of whole words — up to 24,
+  as many as fit — and back. The first word is the one space would commit;
+  the rest are the next completions or predictions. Tap a word to type it
+  with its space; the grid refills for the next word. A control row keeps
+  `ABC`, comma, space, period, backspace and enter at hand.
+
 ## 0.2.9 — 2026-10-16
 
 - **Two rows of suggestions** (Settings, off by default). A second row of

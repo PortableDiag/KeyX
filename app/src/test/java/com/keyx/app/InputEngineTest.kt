@@ -38,6 +38,22 @@ class InputEngineTest {
     }
 
     @Test
+    fun theWordGridFillsWithWholeWordsAndPickingOneTypesIt() {
+        engine.wordGrid = true
+        fun words() = (engine.strip.all + engine.strip.extra).map { it.text.lowercase() }
+        assertTrue("next-word grid: ${words()}", words().size >= 15)
+        assertEquals("no word twice: ${words()}", words().size, words().toSet().size)
+        type("th")
+        assertTrue("completion grid: ${words()}", words().size >= 12)
+        val pick = engine.strip.extra.first { it.text.length > 2 }
+        engine.onPick(pick)
+        assertEquals(pick.text.replaceFirstChar { it.uppercase() } + " ", ed.toString())
+        assertTrue("predicts again after a pick: ${words()}", words().size >= 15)
+        engine.wordGrid = false
+        assertEquals(Suggester.EXTRA, engine.strip.extra.size)
+    }
+
+    @Test
     fun startOfFieldIsCapitalizedAndShiftReleasesAfterOneLetter() {
         assertEquals(Shift.ONCE, engine.shift)
         type("hi there")
