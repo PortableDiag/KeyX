@@ -98,6 +98,13 @@ class InputEngine(
     private var recased: String? = null
     private var recaseStep = 0
 
+    /**
+     * The word as it was before one press of shift re-cased it. A letter typed next
+     * means the press was for that letter — "camel", shift, "c" is "camelC" — so the
+     * word goes back to this and the letter comes in capital.
+     */
+    private var camelFrom: String? = null
+
     private val language: String get() = suggester?.language ?: ""
 
     fun startInput(policy: FieldPolicy) {
@@ -121,14 +128,21 @@ class InputEngine(
         val ed = editor ?: return
         val markSpace = takeMarkSpace(ed)
         if (text.length == 1 && isWordChar(text[0], composing.isNotEmpty())) {
+            val camel = camelFrom?.takeIf { !fromGesture && composing.toString() == recased }
+            camelFrom = null
             ed.batch {
                 if (markSpace && text[0].isDigit() && ed.before(2).take(1) in listOf(".", ",", ":")) ed.deleteBefore(1)
+                if (camel != null) {
+                    composing.setLength(0)
+                    composing.append(camel)
+                    recased = null
+                }
                 if (fromGesture) commitComposing(" ", correct = false)
                 // Letters typed onto the end of a word extend that word: erase "Boating"
                 // back to "Boa", type "ring", and the word is "Boaring", not "ring".
                 if (composing.isEmpty()) adoptWordBeforeCursor()
                 if (composing.isEmpty()) composingPrevious = previousWordIn(ed.before(64))
-                composing.append(applyShift(text))
+                composing.append(if (camel != null) text.uppercase() else applyShift(text))
                 ed.setComposing(composing.toString())
             }
             if (shift == Shift.ONCE) shift = Shift.OFF
@@ -307,7 +321,13 @@ class InputEngine(
             when (s.kind) {
                 Suggestion.Kind.EMOJI -> {
                     if (composing.isNotEmpty()) {
-                        commitComposing(" ", correct = false)
+                        // The emoji stands in for the word it was offered for: "piz" -> 🍕.
+                        composing.setLength(0)
+                        fromGesture = false
+                        recased = null
+                        ed.setComposing("")
+                        val before = ed.before(1)
+                        if (before.isNotEmpty() && !before[0].isWhitespace()) ed.commit(" ")
                     } else {
                         val before = ed.before(1)
                         if (before.isNotEmpty() && !before[0].isWhitespace()) ed.commit(" ")
@@ -450,6 +470,7 @@ class InputEngine(
         val ed = editor ?: return
         val word = composing.toString()
         var step = if (word == recased) recaseStep else -1
+        camelFrom = if (step == -1) word else null
         var next = word
         for (i in 0 until RECASES) {
             step = (step + 1) % RECASES
@@ -471,6 +492,10 @@ class InputEngine(
         1 -> word.lowercase()
         else -> word.lowercase().replaceFirstChar { it.uppercaseChar() }
     }
+
+    /** "camelCase", "iPhone": a capital inside a lowercase word was typed on purpose. */
+    private fun innerCapital(word: String): Boolean =
+        word.drop(1).any { it.isUpperCase() } && word.any { it.isLowerCase() }
 
     /** The case was picked with shift: autocorrect may fix the spelling, never the case. */
     private fun caseOnly(correction: String?): Boolean =
@@ -527,7 +552,7 @@ class InputEngine(
             return
         }
         domainDot = null
-        val correction = if (correct && typed != keepAsTyped && policy.autocorrect && options.autocorrect) {
+        val correction = if (correct && typed != keepAsTyped && !innerCapital(typed) && policy.autocorrect && options.autocorrect) {
             suggester?.forWord(typed, previousWord(), autocorrect = true, emojiOn = false)?.autocorrect
         } else {
             null
@@ -622,6 +647,7 @@ class InputEngine(
                 composing.toString(),
                 previousWord(),
                 autocorrect = policy.autocorrect && options.autocorrect && composing.toString() != keepAsTyped &&
+                    !innerCapital(composing.toString()) &&
                     !completesDomain(composing.toString()),
                 emojiOn = options.emojiPredictions,
             )

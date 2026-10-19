@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.11 — 2026-10-19
+
+- **An emoji replaces the word it was offered for**, as in SwiftKey: type
+  `piz`, tap 🍕, and the text is `🍕 `, not `piz 🍕 `. After a space the
+  predicted emoji still follows the word (`pizza 🍕`). A part word offers
+  its top completion's emoji too: `pizz` shows 🍕.
+- **camelCase in one motion:** shift then a letter, mid-word, capitalizes
+  that letter — `camel` ⇧ `case` is `camelCase`. A word with a capital
+  inside it (`camelCase`, `iPhone`) is never autocorrected. Shift with no
+  letter after it still re-cases the word.
+
 ## 0.2.10 — 2026-10-16
 
 - **Word grid** (Settings → *Word grid button*, off by default). A button at

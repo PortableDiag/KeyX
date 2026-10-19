@@ -111,7 +111,12 @@ class Suggester(
             others.getOrNull(0)?.let { Suggestion(it, Suggestion.Kind.COMPLETION) }
         }
         val rightWord = others.getOrNull(if (correction != null) 0 else 1)
-        val emojiFor = if (emojiOn) emoji?.forWord(correction ?: typed) else null
+        // With no correction the left slot shows the top completion, so its emoji can take the right one: "piz" -> 🍕.
+        val emojiFor = if (emojiOn) {
+            emoji?.forWord(correction ?: typed) ?: if (correction == null) others.firstOrNull()?.let { emoji?.forWord(it) } else null
+        } else {
+            null
+        }
         val right = when {
             emojiFor != null -> Suggestion(emojiFor, Suggestion.Kind.EMOJI)
             rightWord != null -> Suggestion(rightWord, Suggestion.Kind.COMPLETION)

@@ -275,12 +275,46 @@ class InputEngineTest {
     }
 
     @Test
-    fun emojiPredictionFollowsTheWord() {
-        type("pizza")
+    fun anEmojiPickedWhileTypingReplacesTheWord() {
+        type("so pizza")
+        val e = engine.strip.right!!
+        assertEquals(Suggestion.Kind.EMOJI, e.kind)
+        engine.onPick(e)
+        assertEquals("So 🍕 ", ed.toString())
+    }
+
+    @Test
+    fun aPartWordOffersItsCompletionsEmoji() {
+        type("so pizz")
+        val e = engine.strip.right!!
+        assertEquals("strip: ${engine.strip}", Suggestion.Kind.EMOJI, e.kind)
+        engine.onPick(e)
+        assertEquals("So 🍕 ", ed.toString())
+    }
+
+    @Test
+    fun anEmojiPredictedAfterTheWordFollowsIt() {
+        type("pizza ")
         val e = engine.strip.right!!
         assertEquals(Suggestion.Kind.EMOJI, e.kind)
         engine.onPick(e)
         assertEquals("Pizza 🍕 ", ed.toString())
+    }
+
+    @Test
+    fun shiftThenALetterMidWordTypesCamelCase() {
+        type("so camel")
+        engine.onShift(false)
+        type("case")
+        assertEquals("camelCase", ed.composing)
+        engine.onSpace()
+        assertEquals("So camelCase ", ed.toString())
+        type("my")
+        engine.onShift(false)
+        type("var")
+        engine.onShift(false)
+        type("name ")
+        assertEquals("So camelCase myVarName ", ed.toString())
     }
 
     @Test
@@ -341,7 +375,10 @@ class InputEngineTest {
         assertEquals("NASA", ed.composing)
         engine.onShift(false) // already ALL CAPS: straight to lowercase
         assertEquals("nasa", ed.composing)
+        engine.onShift(false) // Nasa
         type("x")
+        // Two presses picked a case; the letter is typed as it is.
+        assertEquals("Nasax", ed.composing)
         engine.onShift(false)
         // A word typed on is a new word: the cycle starts over at ALL CAPS.
         assertEquals("NASAX", ed.composing)
