@@ -133,6 +133,12 @@ class InputEngineTest {
     }
 
     @Test
+    fun chatWordsAreNotCorrected() {
+        type("lol :) idk hmm btw omg haha ")
+        assertEquals("Lol :) idk hmm btw omg haha ", ed.toString())
+    }
+
+    @Test
     fun aFaceTypedAgainstTheWordStaysThere() {
         type("yes:) no:(")
         assertEquals("Yes:) no:( ", ed.toString())

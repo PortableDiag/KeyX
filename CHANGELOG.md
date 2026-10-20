@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.14 — 2026-10-20
+
+- **Chat words are words:** `lol`, `haha`, `hmm`, `idk`, `btw`, `omg`, `lmao`,
+  `brb`, `tbh`, `imo`, `lmk`, `smh`, `omw`, `ttyl` and the like are in the
+  English dictionaries, so they are no longer corrected (`lol` used to become
+  `look`) and they complete and predict. No system word list has them, so
+  `tools/build_dicts.py` adds them, and since subtitles barely use them each
+  counts at least as much as `kinda`. `asap`, `fyi` and `btw` now come
+  lowercase; shift still makes them capitals. Two-letter ones (`np`, `ty`,
+  `jk`) are left out: they sit too close to real words.
+
 ## 0.2.13 — 2026-10-20
 
 - **`:)` and `;)` come out as faces.** `lol :)` used to become `lol:)`: the

@@ -58,6 +58,13 @@ SHARE = {"I'm": ("'m", 1.0), "it's": ("'s", .25), "that's": ("'s", .18),
          "she'd": ("'d", .05), "we'd": ("'d", .08), "they'd": ("'d", .06)}
 contractions = [(c, freq.get(f, 0)) for f, c in FRAGMENT.items()]
 contractions += [(c, int(freq.get(tok, 0) * share)) for c, (tok, share) in SHARE.items()]
+# Chat words: no system word list has them, so "lol" was corrected to "look". Subtitles
+# barely use them (lol: 953), so each counts at least CHAT_FLOOR, about "kinda".
+# Two-letter ones (np, ty, jk) are left out: too close to real words to be safe targets.
+CHAT = """lol lols haha hahaha hehe omg btw idk lmao brb thx pls plz hmm aww tbh imo ikr
+lmk smh fyi asap rofl omw ttyl nah xoxo bday""".split()
+CHAT_FLOOR = 20000
+chat = [(w, max(freq.get(w, 0), CHAT_FLOOR)) for w in CHAT]
 
 def english(wordlist):
     forms = {}
@@ -72,11 +79,11 @@ def english(wordlist):
         if len(w) == 1 and w not in ("a", "i"):
             continue
         form = "I" if w == "i" else ("I" + w[1:] if w.startswith("i'") else forms.get(w))
-        if form is None or form in seen:
+        if form is None or form in seen or w in CHAT:
             continue
         seen.add(form)
         rows.append((form, c))
-    return sorted(rows + [e for e in contractions if e[1] > 0], key=lambda r: -r[1])
+    return sorted(rows + [e for e in contractions if e[1] > 0] + chat, key=lambda r: -r[1])
 
 write("en", english("/usr/share/dict/american-english"))
 write("en_GB", english("/usr/share/dict/british-english"))

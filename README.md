@@ -8,7 +8,7 @@ permission is `VIBRATE`; nothing typed here can leave the phone through it.
 
 | | |
 |---|---|
-| Autocorrect | on space and punctuation; neighboring-key slips, doubled letters, missing apostrophes and accents are cheap edits. Backspace straight after a correction puts the typed word back and teaches it |
+| Autocorrect | on space and punctuation; neighboring-key slips, doubled letters, missing apostrophes and accents are cheap edits. Backspace straight after a correction puts the typed word back and teaches it. Chat words (`lol`, `idk`, `hmm`, `btw`) are words |
 | Predictions | completions while typing, next-word predictions after; the strip is SwiftKey's shape — center is what space commits, left shows the word as typed when a correction is pending. Long-press a suggestion to remove it (asks first). Optional second row: six words in the same height |
 | Word grid | optional button at the strip's right: the keys become a grid of whole words to tap, with comma, space, period, backspace and enter below |
 | Emoji | dedicated emoji key and panel (Emoji ≤14, recents); emoji predictions ("pizz" → 🍕); tapping one while typing replaces the word, as SwiftKey does |
@@ -75,7 +75,7 @@ fields get no suggestions. Backup and device transfer are excluded.
 | `tools/` | `build_dicts.py`, `build_emoji.py` — rebuild the bundled data |
 
 Dictionary data: [FrequencyWords](https://github.com/hermitdave/FrequencyWords)
-(OpenSubtitles 2018, CC BY-SA 4.0), filtered against the system word lists and,
+(OpenSubtitles 2018, CC BY-SA 4.0), filtered against the system word lists (plus a short list of chat words they lack) and,
 for German, LibreOffice's hunspell `de_DE_frami` to restore umlauts and noun case.
 Emoji: Unicode `emoji-test.txt` 15.1.
 
