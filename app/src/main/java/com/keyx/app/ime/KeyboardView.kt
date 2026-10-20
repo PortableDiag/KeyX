@@ -646,11 +646,16 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         val rowsN = (options.size + perRow - 1) / perRow
         val totalW = perRow * cellW
         // The anchor cell goes over the key; the rest keep their left-right order around it.
-        val left = (b.rect.centerX() - cellW / 2 - (anchor % perRow) * cellW).coerceIn(0f, width - totalW)
+        // Near the right edge that order would push the popup left and put the next entry
+        // under the finger ("l" long-pressed for ")" gave "ł"), so there the row runs leftward.
+        val keyLeft = b.rect.centerX() - cellW / 2
+        val mirror = rowsN == 1 && keyLeft - anchor * cellW + totalW > width
+        val col = { i: Int -> if (mirror) perRow - 1 - i % perRow else i % perRow }
+        val left = (keyLeft - col(anchor) * cellW).coerceIn(0f, width - totalW)
         val top = max(0f, b.rect.top - cellH * rowsN)
         options.indices.forEach { i ->
             val r = i / perRow
-            val c = i % perRow
+            val c = col(i)
             popupCells += RectF(left + c * cellW, top + r * cellH, left + (c + 1) * cellW, top + (r + 1) * cellH)
         }
         popupSelected = anchor.coerceIn(0, options.size - 1)

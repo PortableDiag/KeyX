@@ -86,6 +86,9 @@ class InputEngine(
      */
     private var spaceAfterMark = false
 
+    /** That mark was swapped with the space after a word ("lol :" -> "lol: "): the mark, else null. */
+    private var swappedMark: String? = null
+
     /**
      * A "." just got its space after a run of text that may be a domain name: if the next
      * word is a top-level domain, "dry. Ai" was "dry.ai" all along, and is rewritten so.
@@ -127,6 +130,7 @@ class InputEngine(
     fun onText(text: String) {
         val ed = editor ?: return
         val markSpace = takeMarkSpace(ed)
+        val swapped = swappedMark.takeIf { markSpace && ed.before(2) == "$it " }
         if (text.length == 1 && isWordChar(text[0], composing.isNotEmpty())) {
             val camel = camelFrom?.takeIf { !fromGesture && composing.toString() == recased }
             camelFrom = null
@@ -162,14 +166,28 @@ class InputEngine(
                     ed.commit("$text ")
                     autoSpace = true
                     spaceAfterMark = spacesAfterMarks()
+                    swappedMark = text
                 } else if (text in SWAPPING_PUNCTUATION && spacesAfterMarks() && !address && endsAMarkable(ed.before(1))) {
                     // "word," -> "word, " — the next word needs no space key.
                     if (text == ".") domainDot = domainDotBefore(ed.before(64))
                     ed.commit("$text ")
                     autoSpace = true
                     spaceAfterMark = true
+                    swappedMark = null
                 } else {
-                    if (markSpace && text == "/") {
+                    if (markSpace && text in FACES && ed.before(2).take(1) in listOf(":", ";") && (swapped != null || text in "()")) {
+                        // ":)" and ";)" are faces, not a sentence: "lol :" then ")" is "lol :) ",
+                        // the colon's space given back to the word.
+                        if (swapped != null) {
+                            ed.deleteBefore(2)
+                            ed.commit(" $swapped$text ")
+                        } else {
+                            ed.deleteBefore(1)
+                            ed.commit("$text ")
+                        }
+                        spaceAfterMark = true
+                        swappedMark = null
+                    } else if (markSpace && text == "/") {
                         // "https:" then "/": a protocol, not a sentence.
                         ed.deleteBefore(1)
                         ed.commit(text)
@@ -178,6 +196,7 @@ class InputEngine(
                         ed.deleteBefore(1)
                         ed.commit("$text ")
                         spaceAfterMark = true
+                        swappedMark = null
                     } else {
                         ed.commit(text)
                     }
@@ -661,6 +680,7 @@ class InputEngine(
         private const val CORRECTING_PUNCTUATION = ".,!?;:)]}\"'"
         private const val SWAPPING_PUNCTUATION = ".,!?;:"
         private const val CLOSING_BRACKETS = ")]}"
+        private const val FACES = ")(/|\\"
 
         /** "https:" is a protocol about to get its "//", not a word to correct. */
         private val SCHEMES = setOf("http", "https", "ftp", "sftp", "ftps", "ssh", "git", "file", "ws", "wss")

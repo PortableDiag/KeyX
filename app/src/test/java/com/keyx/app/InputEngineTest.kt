@@ -127,6 +127,24 @@ class InputEngineTest {
     }
 
     @Test
+    fun facesKeepTheirSpaceFromTheWord() {
+        type("yes :) so ;) no :( well :/")
+        assertEquals("Yes :) so ;) no :( well :/ ", ed.toString())
+    }
+
+    @Test
+    fun aFaceTypedAgainstTheWordStaysThere() {
+        type("yes:) no:(")
+        assertEquals("Yes:) no:( ", ed.toString())
+    }
+
+    @Test
+    fun aColonThenABracketAfterItsSpaceIsNotAFace() {
+        type("note: (see above) and https://x")
+        assertEquals("Note: (see above) and https://x", ed.toString())
+    }
+
+    @Test
     fun enterDropsTheTrailingAutoSpace() {
         type("hi.")
         engine.onEnter()

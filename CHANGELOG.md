@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.13 — 2026-10-20
+
+- **`:)` and `;)` come out as faces.** `lol :)` used to become `lol:)`: the
+  colon pulled the space back against the word, as it does for a sentence.
+  A face typed straight after `:` or `;` (`)` `(` `/` `|` `\`) now gets
+  the space back: `lol :) `. Typed against the word (`lol:)`) it stays
+  there. `note: (see above)` and `https://` are unchanged.
+- **Long-press `l` for `)` no longer gives `ł`.** On a key near the right
+  edge the popup was pushed left, so the next entry (`ł`) sat under the
+  finger. There the popup now runs leftward, keeping the symbol over the key.
+
 ## 0.2.12 — 2026-10-19
 
 - **Hold backspace to delete whole words**, as SwiftKey does. After the
