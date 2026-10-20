@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.12 — 2026-10-19
+
+- **Hold backspace to delete whole words**, as SwiftKey does. After the
+  hold registers it takes three letters, then a whole word every quarter
+  second. It used to run through fifteen letters first (most of a
+  sentence), so it read as letter repeat.
+
 ## 0.2.11 — 2026-10-19
 
 - **An emoji replaces the word it was offered for**, as in SwiftKey: type

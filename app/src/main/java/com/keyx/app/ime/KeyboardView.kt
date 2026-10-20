@@ -945,9 +945,11 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
             when (mode) {
                 Mode.BACKSPACE -> {
                     repeats++
-                    // Held long enough, it deletes whole words, as SwiftKey's does.
-                    if (repeats > 15) actions.onDeleteWord() else actions.onBackspace()
-                    handler.postDelayed(this, if (repeats > 15) 180 else 55)
+                    // Held, it takes a few letters and then whole words, as SwiftKey's does:
+                    // the hold is for words, a tap is for letters.
+                    val words = repeats > HOLD_LETTERS
+                    if (words) actions.onDeleteWord() else actions.onBackspace()
+                    handler.postDelayed(this, if (words) HOLD_WORD_MS else HOLD_LETTER_MS)
                 }
                 Mode.ARROW -> {
                     repeats++
@@ -1323,5 +1325,9 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         /** [pressedStrip] for the word-grid button. */
         const val GRID_BUTTON = -3
         const val STRIP_LONG_PRESS_MS = 500L
+        /** Held backspace: this many single letters after the 400 ms wait, then a word per [HOLD_WORD_MS]. */
+        const val HOLD_LETTERS = 3
+        const val HOLD_LETTER_MS = 70L
+        const val HOLD_WORD_MS = 250L
     }
 }

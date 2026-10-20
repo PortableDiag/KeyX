@@ -16,7 +16,7 @@ permission is `VIBRATE`; nothing typed here can leave the phone through it.
 | Space bar | flick left/right = switch language; long-press then drag = cursor control; shows the language name |
 | Shift | on a word being typed, cycles its case: ALL CAPS → lowercase → Capitalized; autocorrect keeps the case picked. Shift then a letter mid-word is camelCase (`my` ⇧ `var` → `myVar`); words with an inner capital are never autocorrected |
 | Rows | number row; **arrow-key row** below the keyboard in SwiftKey's order: ↑ ↓ ← → |
-| Backspace | hold to repeat (whole words after a while); swipe left deletes a word |
+| Backspace | hold: three letters, then a whole word every quarter second, as SwiftKey; swipe left deletes a word |
 | Long-press | the symbol hint on each key, plus every accent |
 | Period | SwiftKey's quick punctuation: slide right for `?`, left for `!`; long-press opens on `.` with `?` to its right |
 | Voice | long-press comma (or toolbar) hands over to the system voice keyboard — KeyX has no microphone |
@@ -58,7 +58,7 @@ fields get no suggestions. Backup and device transfer are excluded.
   back by tapping it as typed, by *Import words*, or with *Reset learning*.
 - **No license yet:** the repo is public, but until a LICENSE is chosen the code
   is all rights reserved. The dictionary packs are CC BY-SA 4.0 (see below).
-- **Not verified on a real device yet:** emoji replacing the word and camelCase (0.2.11), the word grid (0.2.10), two rows of suggestions and the `<` `>` keys (0.2.9, 0.2.8), long-press removal and domain spacing (0.2.6), space after punctuation (0.2.5), the 0.2.3 erase-and-retype fix, voice hand-off, SMS one-time codes
+- **Not verified on a real device yet:** hold-backspace word timing (0.2.12), emoji replacing the word and camelCase (0.2.11), the word grid (0.2.10), two rows of suggestions and the `<` `>` keys (0.2.9, 0.2.8), long-press removal and domain spacing (0.2.6), space after punctuation (0.2.5), the 0.2.3 erase-and-retype fix, voice hand-off, SMS one-time codes
   surfacing with a third-party IME, the ClipX buttons, and whether the fast-typing
   fixes cure the jam seen on the phone (the emulator could not reproduce it).
 
