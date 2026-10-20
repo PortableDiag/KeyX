@@ -50,6 +50,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.keyx.app.BuildConfig
 import com.keyx.app.data.KeyXData
 import com.keyx.app.data.Settings
 
@@ -215,6 +216,7 @@ fun SettingsScreen(data: KeyXData, onEditLayout: (String) -> Unit, onEditTheme: 
         message?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
 
         Section("About")
+        Text("KeyX ${BuildConfig.VERSION_NAME}" + if (BuildConfig.DEBUG) " (debug)" else "")
         Text("Word frequencies: FrequencyWords by Hermit Dave (OpenSubtitles 2018), CC BY-SA 4.0. " +
             "Emoji: Unicode emoji-test 15.1.", style = MaterialTheme.typography.bodySmall)
     }
