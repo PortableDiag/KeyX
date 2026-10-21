@@ -23,6 +23,7 @@ permission is `VIBRATE`; nothing typed here can leave the phone through it.
 | Clipboard | a fresh copy is offered in the strip; the panel holds this session's clips in memory only — **ClipX** keeps the history (open / save-to buttons) |
 | Themes | **Phosphor Green** (default), plus the Trellis Android themes — Ocean, Terminal, Trellis, Sticky Notes, Futuristic, SynthWave, Blueprint, Silkscreen, Phosphor P31 — Amber Terminal, Graphite, and SwiftKey's glowing outlines as **Neon** (cyan and violet) and **White Glow**. The settings app wears whichever theme the keyboard does |
 | Faces | `:)` `;)` `:(` `:/` keep their space from the word: `lol :) `, not `lol:)` |
+| Settings | About shows the version (`KeyX 0.2.15`), read from the build |
 | Also | auto-caps, double-space period, a space after `. , ! ? ; :` (digits close it back up: `3.14`, `1,000`, `10:30`; domains close up too: `dry.ai`, `https://`, `www.`; off in URL and email fields), smart punctuation, key-press popup, keyboard height, vibration strength |
 
 **Languages:** en_US, en_GB (British spelling; both Englishes share one learned vocabulary), de_DE (QWERTZ, Ü Ö Ä), ru_RU (ЙЦУКЕН). Each is a
@@ -59,7 +60,7 @@ fields get no suggestions. Backup and device transfer are excluded.
   back by tapping it as typed, by *Import words*, or with *Reset learning*.
 - **No license yet:** the repo is public, but until a LICENSE is chosen the code
   is all rights reserved. The dictionary packs are CC BY-SA 4.0 (see below).
-- **Not verified on a real device yet:** faces and the edge-key popup (0.2.13), emoji replacing the word and camelCase (0.2.11), the word grid (0.2.10), two rows of suggestions and the `<` `>` keys (0.2.9, 0.2.8), long-press removal and domain spacing (0.2.6), space after punctuation (0.2.5), the 0.2.3 erase-and-retype fix, voice hand-off, SMS one-time codes
+- **Not verified on a real device yet:** the About version (0.2.15), chat words (0.2.14), faces and the edge-key popup (0.2.13), emoji replacing the word and camelCase (0.2.11), the word grid (0.2.10), two rows of suggestions and the `<` `>` keys (0.2.9, 0.2.8), long-press removal and domain spacing (0.2.6), space after punctuation (0.2.5), the 0.2.3 erase-and-retype fix, voice hand-off, SMS one-time codes
   surfacing with a third-party IME, the ClipX buttons, and whether the fast-typing
   fixes cure the jam seen on the phone (the emulator could not reproduce it).
 
