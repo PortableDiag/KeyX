@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.16 — 2026-10-24
+
+- **Lowercase words stay lowercase:** space no longer turns `th`, `er`,
+  `sam`, `mia`, `ok`, `le` into `Th`, `ER`, `SAM`, `MIA`, `OK`, `Le`. The
+  system word lists keep those only as symbols or acronyms, and any word with
+  no lowercase form used to be "case-fixed". Now only names are capitalized on
+  their own (`joe` → `Joe`, three letters or more), plus `I` and `mr`, `mrs`,
+  `ms`, `dr`, `jr`, `sr`, `st`. An acronym (`OK`, `TV`) is still offered in the
+  strip, after the top completion.
+- This also fixes "th" showing twice in the strip (typed, and the "Th"
+  correction in the center).
+
 ## 0.2.15 — 2026-10-20
 
 - **Settings → About shows the version** (`KeyX 0.2.15`), read from the
