@@ -8,7 +8,7 @@ permission is `VIBRATE`; nothing typed here can leave the phone through it.
 
 | | |
 |---|---|
-| Autocorrect | on space and punctuation; neighboring-key slips, doubled letters, missing apostrophes and accents are cheap edits. Backspace straight after a correction puts the typed word back and teaches it. Chat words (`lol`, `idk`, `hmm`, `btw`) are words |
+| Autocorrect | on space and punctuation; neighboring-key slips, doubled letters, missing apostrophes and accents are cheap edits. Backspace straight after a correction puts the typed word back and teaches it. Chat words (`lol`, `idk`, `hmm`, `btw`) are words. Only names are capitalized on their own (`joe` → `Joe`, `i` → `I`, `mr` → `Mr`); symbols and acronyms in the word lists (`Th`, `ER`, `SAM`, `OK`) are offered in the strip, never forced |
 | Predictions | completions while typing, next-word predictions after; the strip is SwiftKey's shape — center is what space commits, left shows the word as typed when a correction is pending. Long-press a suggestion to remove it (asks first). Optional second row: six words in the same height |
 | Word grid | optional button at the strip's right: the keys become a grid of whole words to tap, with comma, space, period, backspace and enter below |
 | Emoji | dedicated emoji key and panel (Emoji ≤14, recents); emoji predictions ("pizz" → 🍕); tapping one while typing replaces the word, as SwiftKey does |
@@ -23,7 +23,7 @@ permission is `VIBRATE`; nothing typed here can leave the phone through it.
 | Clipboard | a fresh copy is offered in the strip; the panel holds this session's clips in memory only — **ClipX** keeps the history (open / save-to buttons) |
 | Themes | **Phosphor Green** (default), plus the Trellis Android themes — Ocean, Terminal, Trellis, Sticky Notes, Futuristic, SynthWave, Blueprint, Silkscreen, Phosphor P31 — Amber Terminal, Graphite, and SwiftKey's glowing outlines as **Neon** (cyan and violet) and **White Glow**. The settings app wears whichever theme the keyboard does |
 | Faces | `:)` `;)` `:(` `:/` keep their space from the word: `lol :) `, not `lol:)` |
-| Settings | About shows the version (`KeyX 0.2.15`), read from the build |
+| Settings | About shows the version (`KeyX 0.2.16`), read from the build |
 | Also | auto-caps, double-space period, a space after `. , ! ? ; :` (digits close it back up: `3.14`, `1,000`, `10:30`; domains close up too: `dry.ai`, `https://`, `www.`; off in URL and email fields), smart punctuation, key-press popup, keyboard height, vibration strength |
 
 **Languages:** en_US, en_GB (British spelling; both Englishes share one learned vocabulary), de_DE (QWERTZ, Ü Ö Ä), ru_RU (ЙЦУКЕН). Each is a
@@ -54,8 +54,6 @@ fields get no suggestions. Backup and device transfer are excluded.
   whose ending is an everyday word (`.is`, `.it`, `.me`, `.to`, `.us`) or isn't
   on the list (`.news`, `.page`) still comes out `example. me`; URL and email
   fields are exempt, and the setting turns it off.
-- **The strip can show one word twice:** typing `th` puts "th" in two of the
-  three bottom slots (typed and center). Seen while building 0.2.9; not new and not fixed.
 - **Removed suggestions** have no list in Settings yet: a removed word comes
   back by tapping it as typed, by *Import words*, or with *Reset learning*.
 - **No license yet:** the repo is public, but until a LICENSE is chosen the code

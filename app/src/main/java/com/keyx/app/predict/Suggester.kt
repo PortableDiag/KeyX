@@ -99,6 +99,10 @@ class Suggester(
         val others = ranked.values.sortedByDescending { it.second }
             .map { matchCase(typed, it.first) }
             .filter { it != correction && !it.equals(typed, true) }
+            .toMutableList()
+        // An acronym space won't force ("ok" -> "OK") is still one tap away, after the top completion.
+        val acronym = if (known && correction == null) caseForm(typed)?.takeIf { it.all { c -> c.isUpperCase() } } else null
+        if (acronym != null) others.add(min(1, others.size), acronym)
 
         val center = if (correction != null) {
             Suggestion(correction, Suggestion.Kind.CORRECTION)
@@ -243,12 +247,24 @@ class Suggester(
 
     /**
      * "i" -> "I", "john" -> "John": the word is right but only exists capitalized.
-     * Never applied when the operator has typed it in lowercase themselves.
+     * Only a name-shaped form of three letters or more is forced: the word lists
+     * also hold symbols and acronyms ("Th", "Le", "ER", "SAM"), and "th", "er"
+     * and "sam" typed in lowercase are meant that way.
      */
     private fun caseFix(typed: String): String? {
+        val form = caseForm(typed) ?: return null
+        val nameShaped = form.drop(1).none { it.isUpperCase() }
+        return form.takeIf {
+            nameShaped && (form.length >= 3 || form == "I" || typed in HONORIFICS)
+        }
+    }
+
+    /** The case the dictionary keeps a lowercase-typed word in, when it has no lowercase form. */
+    private fun caseForm(typed: String): String? {
         if (typed.any { it.isUpperCase() } || !typed.all { it.isLetter() || it == '\'' }) return null
         val forms = dictionary.forms(typed).filterNot { learned.isBlocked(language, it.word) }
         if (forms.isEmpty() || forms.any { it.word == typed }) return null
+        // Never applied when the operator has typed it in lowercase themselves.
         if (learned.forms(language, typed).any { it == typed }) return null
         return forms.first().word
     }
@@ -260,6 +276,7 @@ class Suggester(
 
     companion object {
         const val KNOWN_AFTER = 2
+        private val HONORIFICS = setOf("mr", "mrs", "ms", "dr", "jr", "sr", "st")
         /** Suggestions on the second row. */
         const val EXTRA = 3
         /** Words beyond the strip's three that the word grid asks for. */

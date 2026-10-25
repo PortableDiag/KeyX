@@ -116,4 +116,28 @@ class SuggesterTest {
         // the UI thread for every keystroke: 20 ms here would already be felt.
         assertTrue("took ${perWordMs}ms per word", perWordMs < 20)
     }
+
+    @Test
+    fun onlyNamesAreCapitalizedOnTheirOwn() {
+        assertEquals("I", corrected("i"))
+        assertEquals("I'm", corrected("im"))
+        assertEquals("Mr", corrected("mr"))
+        assertEquals("Joe", corrected("joe"))
+        // The word lists also hold symbols and acronyms: typed lowercase, they stay so.
+        for (w in listOf("th", "er", "sam", "mia", "ok", "le")) assertNull(w, corrected(w))
+    }
+
+    @Test
+    fun aWordTypedInLowercaseIsShownOnceAndSpaceKeepsIt() {
+        for (w in listOf("th", "ok", "er")) {
+            val strip = en.forWord(w, null, autocorrect = true, emojiOn = false)
+            val words = (strip.all + strip.extra).map { it.text }
+            assertEquals("$w: $words", words.size, words.toSet().size)
+            assertEquals(w, strip.center?.text)
+            assertNull(strip.autocorrect)
+        }
+        assertEquals("the", en.forWord("th", null, autocorrect = true, emojiOn = false).left?.text)
+        val ok = en.forWord("ok", null, autocorrect = true, emojiOn = false)
+        assertTrue("OK is one tap away: ${ok.all + ok.extra}", (ok.all + ok.extra).any { it.text == "OK" })
+    }
 }
