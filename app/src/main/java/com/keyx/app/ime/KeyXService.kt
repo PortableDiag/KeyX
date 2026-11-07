@@ -240,7 +240,21 @@ class KeyXService : InputMethodService(), KeyboardActions {
             }
             return
         }
-        Toast.makeText(this, "No voice keyboard is enabled — turn one on under Languages & input", Toast.LENGTH_LONG).show()
+        // A toast alone can be swallowed (some ROMs hide IME toasts), so the key looked dead:
+        // open the keyboard list, where a voice keyboard (e.g. Google voice typing) is turned on.
+        val installed = imm.inputMethodList.firstOrNull { imi ->
+            imi.packageName != packageName && (0 until imi.subtypeCount).any { imi.getSubtypeAt(it).mode == "voice" }
+        }
+        val label = installed?.loadLabel(packageManager)
+        Toast.makeText(
+            this,
+            if (label != null) "Turn on \"$label\" to use the mic key" else "No voice keyboard is installed",
+            Toast.LENGTH_LONG,
+        ).show()
+        if (installed != null) {
+            requestHideSelf(0)
+            startActivity(Intent(android.provider.Settings.ACTION_INPUT_METHOD_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
     }
 
     override fun onArrow(keyCode: Int) {

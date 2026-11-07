@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.17 — 2026-11-07
+
+- **Mic key no longer looks dead:** with no voice keyboard turned on, holding
+  comma used to show only a toast, which some phones hide. It now opens the
+  keyboard list and names the one to turn on (e.g. "Google voice typing").
+
 ## 0.2.16 — 2026-10-24
 
 - **Lowercase words stay lowercase:** space no longer turns `th`, `er`,
