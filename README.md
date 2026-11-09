@@ -58,7 +58,7 @@ fields get no suggestions. Backup and device transfer are excluded.
   back by tapping it as typed, by *Import words*, or with *Reset learning*.
 - **No license yet:** the repo is public, but until a LICENSE is chosen the code
   is all rights reserved. The dictionary packs are CC BY-SA 4.0 (see below).
-- **Not verified on a real device yet:** the mic key opening the keyboard list when no voice keyboard is on (0.2.17), the About version (0.2.15), chat words (0.2.14), faces and the edge-key popup (0.2.13), emoji replacing the word and camelCase (0.2.11), the word grid (0.2.10), two rows of suggestions and the `<` `>` keys (0.2.9, 0.2.8), long-press removal and domain spacing (0.2.6), space after punctuation (0.2.5), the 0.2.3 erase-and-retype fix, voice hand-off, SMS one-time codes
+- **Not verified on a real device yet:** the Turbohaul, Zoro, Nebula and Material You themes (0.2.18–0.2.20; Material You following wallpaper and dark-mode changes), the mic key opening the keyboard list when no voice keyboard is on (0.2.17), the About version (0.2.15), chat words (0.2.14), faces and the edge-key popup (0.2.13), emoji replacing the word and camelCase (0.2.11), the word grid (0.2.10), two rows of suggestions and the `<` `>` keys (0.2.9, 0.2.8), long-press removal and domain spacing (0.2.6), space after punctuation (0.2.5), the 0.2.3 erase-and-retype fix, voice hand-off, SMS one-time codes
   surfacing with a third-party IME, the ClipX buttons, and whether the fast-typing
   fixes cure the jam seen on the phone (the emulator could not reproduce it).
 
