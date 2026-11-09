@@ -1,0 +1,19 @@
+{
+ "id": "zoro",
+ "name": "Zoro",
+ "keyboardBackground": "#1A1A1A",
+ "stripBackground": "#222424",
+ "keyFace": "#262826",
+ "keyBorder": "#3A3D3A",
+ "keyPressed": "#33204D",
+ "keyText": "#F0F0F0",
+ "hintText": "#AA8C8C8C",
+ "functionText": "#1ED42A",
+ "candidateText": "#8C8C8C",
+ "candidateHighlight": "#1ED42A",
+ "divider": "#3A3D3A",
+ "popupBackground": "#2C2E2C",
+ "popupBorder": "#9100FF",
+ "gestureTrail": "#991ED42A",
+ "accent": "#1ED42A"
+}

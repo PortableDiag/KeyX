@@ -1,0 +1,19 @@
+{
+ "id": "nebula",
+ "name": "Nebula",
+ "keyboardBackground": "#05070D",
+ "stripBackground": "#0A0F1A",
+ "keyFace": "#101726",
+ "keyBorder": "#1E2942",
+ "keyPressed": "#0A2831",
+ "keyText": "#E6EDF7",
+ "hintText": "#AA8796B0",
+ "functionText": "#22D3EE",
+ "candidateText": "#8796B0",
+ "candidateHighlight": "#F472B6",
+ "divider": "#1E2942",
+ "popupBackground": "#0B1324",
+ "popupBorder": "#A78BFA",
+ "gestureTrail": "#9922D3EE",
+ "accent": "#22D3EE"
+}

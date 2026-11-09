@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.20 — 2026-11-08
+
+- **Every ProjectForge house palette is now a theme:** added **Zoro** (green
+  on charcoal, violet popups), **Nebula** (deep-space navy, cyan and pink) and
+  **Material You**, which takes the wallpaper's colors and follows the system
+  light/dark setting on Android 12+ (older phones get a fixed blue-grey).
+
 ## 0.2.19 — 2026-11-08
 
 - **Turbohaul redone to match the artwork:** near-black night city instead of

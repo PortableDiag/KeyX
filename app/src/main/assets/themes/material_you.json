@@ -1,0 +1,19 @@
+{
+ "id": "material_you",
+ "name": "Material You",
+ "keyboardBackground": "#1B1B1F",
+ "stripBackground": "#1B1B1F",
+ "keyFace": "#2F3036",
+ "keyBorder": "#45464F",
+ "keyPressed": "#334478",
+ "keyText": "#E4E1E6",
+ "hintText": "#AAC5C6D0",
+ "functionText": "#B4C5FF",
+ "candidateText": "#C5C6D0",
+ "candidateHighlight": "#DBE1FF",
+ "divider": "#45464F",
+ "popupBackground": "#45464F",
+ "popupBorder": "#B4C5FF",
+ "gestureTrail": "#99B4C5FF",
+ "accent": "#B4C5FF"
+}

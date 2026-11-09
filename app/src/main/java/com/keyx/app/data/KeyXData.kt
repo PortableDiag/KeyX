@@ -86,9 +86,11 @@ class KeyXData private constructor(private val context: Context) {
     fun themeText(id: String): String =
         if (id == CUSTOM_THEME && customTheme.exists()) customTheme.readText() else asset("themes/$id.json")
 
-    fun theme(id: String): KeyboardTheme =
-        runCatching { KeyboardTheme.parse(themeText(id)) }.getOrNull()
+    fun theme(id: String): KeyboardTheme {
+        val t = runCatching { KeyboardTheme.parse(themeText(id)) }.getOrNull()
             ?: KeyboardTheme.parse(asset("themes/${KeyboardTheme.DEFAULT_ID}.json"))
+        return if (t.id == com.keyx.app.theme.MaterialYou.ID) com.keyx.app.theme.MaterialYou.live(context, t) else t
+    }
 
     fun saveCustomTheme(text: String): KeyboardTheme {
         val parsed = KeyboardTheme.parse(text)
