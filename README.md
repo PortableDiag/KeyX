@@ -23,7 +23,7 @@ permission is `VIBRATE`; nothing typed here can leave the phone through it.
 | Clipboard | a fresh copy is offered in the strip; the panel holds this session's clips in memory only — **ClipX** keeps the history (open / save-to buttons) |
 | Themes | **Phosphor Green** (default), plus the Trellis Android themes — Ocean, Terminal, Trellis, Sticky Notes, Futuristic, SynthWave, Turbohaul, Blueprint, Silkscreen, Phosphor P31 — Amber Terminal, Graphite, and SwiftKey's glowing outlines as **Neon** (cyan and violet) and **White Glow**. The settings app wears whichever theme the keyboard does |
 | Faces | `:)` `;)` `:(` `:/` keep their space from the word: `lol :) `, not `lol:)` |
-| Settings | About shows the version (`KeyX 0.2.18`), read from the build |
+| Settings | About shows the version (`KeyX 0.2.19`), read from the build |
 | Also | auto-caps, double-space period, a space after `. , ! ? ; :` (digits close it back up: `3.14`, `1,000`, `10:30`; domains close up too: `dry.ai`, `https://`, `www.`; off in URL and email fields), smart punctuation, key-press popup, keyboard height, vibration strength |
 
 **Languages:** en_US, en_GB (British spelling; both Englishes share one learned vocabulary), de_DE (QWERTZ, Ü Ö Ä), ru_RU (ЙЦУКЕН). Each is a

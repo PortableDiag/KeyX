@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.19 — 2026-11-08
+
+- **Turbohaul redone to match the artwork:** near-black night city instead of
+  navy, chrome letter keys, neon-blue frames on the strip, function keys and
+  arrows, neon-red labels and a red pressed glow.
+
 ## 0.2.18 — 2026-11-08
 
 - **New theme, Turbohaul:** midnight navy keys with neon-red function keys and
