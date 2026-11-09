@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.18 — 2026-11-08
+
+- **New theme, Turbohaul:** midnight navy keys with neon-red function keys and
+  a blue HUD outline, taken from the Turbohaul-Manager artwork. It is also a
+  ProjectForge house palette.
+
 ## 0.2.17 — 2026-11-07
 
 - **Mic key no longer looks dead:** with no voice keyboard turned on, holding

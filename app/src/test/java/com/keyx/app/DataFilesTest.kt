@@ -97,7 +97,7 @@ class DataFilesTest {
     @Test
     fun everyThemeGivesTheSettingsAppAReadableScheme() {
         val ids = File("src/main/assets/themes").list()!!.map { it.removeSuffix(".json") }
-        assertTrue(ids.containsAll(listOf("ocean", "futuristic", "synthwave", "sticky_notes", "blueprint")))
+        assertTrue(ids.containsAll(listOf("ocean", "futuristic", "synthwave", "turbohaul", "sticky_notes", "blueprint")))
         for (id in ids) {
             val scheme = com.keyx.app.ui.theme.colorSchemeFor(KeyboardTheme.parse(TestData.text("themes/$id.json")))
             val bg = scheme.background.luminance()

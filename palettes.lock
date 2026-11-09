@@ -2,5 +2,5 @@
 # `pf gate` and the Open items checklist say so; `pf palette apply .` updates
 # the copy and this file. Written by pf — edit only `files`.
 source = "/media/veracrypt1/Rust/ProjectForge/palettes.toml"
-commit = "56b4ff70b2a219836012cb57c116962ccaef8a19"
+commit = "3068fe3e975616399e3dbe602272e309a187f3b6"
 files = []

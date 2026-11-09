@@ -1,0 +1,21 @@
+{
+ "id": "turbohaul",
+ "name": "Turbohaul",
+ "keyboardBackground": "#020D18",
+ "stripBackground": "#051626",
+ "keyFace": "#0A1F33",
+ "keyBorder": "#1D4A6E",
+ "keyPressed": "#56171E",
+ "keyText": "#CCE3F1",
+ "hintText": "#AA6F93B2",
+ "functionText": "#FF3A45",
+ "candidateText": "#6F93B2",
+ "candidateHighlight": "#33A0DC",
+ "divider": "#1D4A6E",
+ "popupBackground": "#0F2A44",
+ "popupBorder": "#FF3A45",
+ "gestureTrail": "#99FF3A45",
+ "accent": "#FF3A45",
+ "glow": 0.35,
+ "functionBorder": "#33A0DC"
+}
