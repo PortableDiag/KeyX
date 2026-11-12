@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.21 — 2026-11-12
+
+- **Missing apostrophes come back on more words:** "hows" now corrects to
+  "how's", and the same for "whats", "wheres", "hes", "shes", "cant" and
+  "wont" — the word list held those bare spellings, so they counted as real
+  words and were left alone. Added how's, where's, who's, here's, when's,
+  why's, that'll, who'll, who'd, that'd, how'd, would've, could've,
+  should've, might've, must've and more to the English lists. Real words
+  ("its", "lets", "ill", "well", "were") are still never forced.
+
 ## 0.2.20 — 2026-11-08
 
 - **Every ProjectForge house palette is now a theme:** added **Zoro** (green

@@ -87,6 +87,12 @@ class InputEngineTest {
     }
 
     @Test
+    fun knownBareSpellingGetsItsApostrophe() {
+        type("hows it going ")
+        assertEquals("How's it going ", ed.toString())
+    }
+
+    @Test
     fun punctuationSwapsWithTheAutoSpace() {
         type("hi ")
         engine.onText(".")

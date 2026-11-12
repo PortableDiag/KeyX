@@ -55,7 +55,15 @@ SHARE = {"I'm": ("'m", 1.0), "it's": ("'s", .25), "that's": ("'s", .18),
          "they'll": ("'ll", .05), "it'll": ("'ll", .05), "I've": ("'ve", .45),
          "you've": ("'ve", .2), "we've": ("'ve", .15), "they've": ("'ve", .08),
          "I'd": ("'d", .4), "you'd": ("'d", .2), "he'd": ("'d", .08),
-         "she'd": ("'d", .05), "we'd": ("'d", .08), "they'd": ("'d", .06)}
+         "she'd": ("'d", .05), "we'd": ("'d", .08), "they'd": ("'d", .06),
+         "how's": ("'s", .01), "where's": ("'s", .01), "who's": ("'s", .015),
+         "here's": ("'s", .02), "when's": ("'s", .001), "why's": ("'s", .001),
+         "that'll": ("'ll", .03), "what'll": ("'ll", .005), "who'll": ("'ll", .01),
+         "there'll": ("'ll", .01), "who'd": ("'d", .02), "that'd": ("'d", .02),
+         "what'd": ("'d", .01), "how'd": ("'d", .005), "where'd": ("'d", .003),
+         "would've": ("'ve", .03), "could've": ("'ve", .02), "should've": ("'ve", .02),
+         "might've": ("'ve", .005), "must've": ("'ve", .008), "who've": ("'ve", .005),
+         "what're": ("'re", .005)}
 contractions = [(c, freq.get(f, 0)) for f, c in FRAGMENT.items()]
 contractions += [(c, int(freq.get(tok, 0) * share)) for c, (tok, share) in SHARE.items()]
 # Chat words: no system word list has them, so "lol" was corrected to "look". Subtitles

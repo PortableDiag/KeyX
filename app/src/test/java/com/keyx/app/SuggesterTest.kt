@@ -38,6 +38,20 @@ class SuggesterTest {
     }
 
     @Test
+    fun missingApostrophesAreRestored() {
+        assertEquals("how's", corrected("hows"))
+        assertEquals("How's", corrected("Hows"))
+        assertEquals("what's", corrected("whats"))
+        assertEquals("where's", corrected("wheres"))
+        assertEquals("who's", corrected("whos"))
+        assertEquals("would've", corrected("wouldve"))
+        assertEquals("can't", corrected("cant"))
+        assertEquals("I've", corrected("ive"))
+        // Real words in their own right stay as typed.
+        for (w in listOf("its", "lets", "ill", "well", "were", "shed", "hell", "wed")) assertNull(w, corrected(w))
+    }
+
+    @Test
     fun realWordsAreNeverCorrected() {
         assertNull(corrected("form"))
         assertNull(corrected("from"))

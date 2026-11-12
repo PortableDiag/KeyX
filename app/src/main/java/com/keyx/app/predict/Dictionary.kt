@@ -50,6 +50,14 @@ class Dictionary(entries: List<Pair<String, Int>>) {
 
     fun count(word: String): Int = forms(word).firstOrNull()?.count ?: 0
 
+    /** Apostrophe forms by their bare spelling: "hows" -> "how's", "im" -> "I'm". */
+    private val byBare: Map<String, Entry> = sorted.filter { '\'' in it.lower }
+        .groupBy { it.lower.replace("'", "") }
+        .mapValues { (_, forms) -> forms.maxBy { it.count } }
+
+    /** The most frequent apostrophe form spelled like [word] without its apostrophe, if any. */
+    fun contraction(word: String): Entry? = byBare[word.lowercase()]
+
     /** 0..1, logarithmic, so a word 10x as common scores a fixed step higher. */
     fun score(count: Int): Double = ln(1.0 + count) / ln(1.0 + maxCount)
 

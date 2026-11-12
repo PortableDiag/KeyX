@@ -91,7 +91,7 @@ class Suggester(
         val best = fuzzy.firstOrNull()
         val correction = when {
             !autocorrect -> null
-            known -> caseFix(typed)
+            known -> apostropheFix(typed) ?: caseFix(typed)
             !canCorrect(typed) -> null
             best != null -> matchCase(typed, best.first)
             else -> null
@@ -269,6 +269,22 @@ class Suggester(
         return forms.first().word
     }
 
+    /**
+     * "hows" -> "how's", "cant" -> "can't": the word list keeps the bare spelling
+     * (subtitles misspell it), so it counts as known, but the apostrophe form is so
+     * much more common that the bare one is the slip. "its", "lets", "ill", "well"
+     * and "were" are real words, too close in frequency to force.
+     */
+    private fun apostropheFix(typed: String): String? {
+        if (!typed.all { it.isLetter() }) return null
+        val c = dictionary.contraction(typed) ?: return null
+        if (learned.isBlocked(language, c.word)) return null
+        if (c.count < APOSTROPHE_RATIO * max(1, dictionary.count(typed))) return null
+        // Typed bare often enough on purpose, it is the operator's word.
+        if (learned.count(language, typed) >= OWN_BARE) return null
+        return matchCase(typed, c.word)
+    }
+
     private fun canCorrect(typed: String): Boolean =
         typed.length >= 2 && typed.all { it.isLetter() || it == '\'' } &&
             // All-caps is deliberate (an acronym), and so is mixed case after the first letter.
@@ -288,6 +304,9 @@ class Suggester(
         private const val NEIGHBOR = 0.6
         private const val ACCENT = 0.2
         private const val APOSTROPHE = 0.15
+        /** How much more common the apostrophe form must be before a known bare spelling is corrected. */
+        private const val APOSTROPHE_RATIO = 100
+        private const val OWN_BARE = 20
         // A missed double letter ("helo") is the commonest slip there is.
         private const val DOUBLED = 0.3
         private const val TRANSPOSE = 0.7
