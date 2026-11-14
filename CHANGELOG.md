@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — 2026-11-13
+
+- No app changes. 0.2.21 copied to the NAS (`_Transfer_/KeyX-0.2.21.apk`);
+  the NAS copy is now part of every release. It was missing from App Manager's
+  Updates because of an App Manager caching bug, fixed in App Manager 1.7.4.
+
 ## 0.2.21 — 2026-11-12
 
 - **Missing apostrophes come back on more words:** "hows" now corrects to

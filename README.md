@@ -99,6 +99,14 @@ pf sign app/build/outputs/apk/release/app-release-unsigned.apk --key KeyX
 the original and then **verifies the signature locally with `apksigner`** — a
 signature nothing has checked is a signature taken on trust.
 
+A release goes to two places: the signed `-signed.apk`, renamed to
+`KeyX-X.Y.Z.apk`, is attached to the GitHub release, then copied to the NAS at
+`smb://192.168.0.51/NAS/_Transfer_/`
+(`smbclient //192.168.0.51/NAS -N -c 'cd _Transfer_; put KeyX-X.Y.Z.apk'`).
+App Manager on the phone picks it up from the GitHub release. Before App Manager
+1.7.4 it missed new releases: it only re-read a repo when GitHub's `updated_at`
+changed, and a push or a release never changes that.
+
 A Gradle signing config means a keystore and its passwords have to live
 somewhere a build can read them, and "somewhere a build can read them" has meant
 committed to the repo more than once.
