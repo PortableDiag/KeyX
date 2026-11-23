@@ -6,7 +6,7 @@
   per half of each row. Only averages are kept, sealed and reset with the words;
   never from password or incognito fields. Settings: *Learn my aim*.
 - **Stray spaces:** "hav e" -> "have"; a space touched high fills in the letter
-  above it ("belie e" -> "believe"). Backspace puts it back.
+  above it ("belie e" -> "believe"). Backspace splits it again ("have e").
 - **Context from the start:** 40,000 bundled word pairs each for English, German
   and Russian (Tatoeba, CC BY 2.0) help pick between likely words.
 - **Fixed:** in 0.2.22 the first word after the keyboard started stuttered (about
