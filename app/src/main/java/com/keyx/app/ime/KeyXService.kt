@@ -22,6 +22,7 @@ import com.keyx.app.layout.Page
 import com.keyx.app.predict.GestureDecoder
 import com.keyx.app.predict.KeyGrid
 import com.keyx.app.predict.Suggester
+import com.keyx.app.predict.Touch
 import com.keyx.app.predict.Suggestion
 
 /**
@@ -179,7 +180,7 @@ class KeyXService : InputMethodService(), KeyboardActions {
 
     // ---- KeyboardActions ------------------------------------------------------
 
-    override fun onChar(text: String) = engine.onText(text)
+    override fun onChar(text: String, touch: Touch?) = engine.onText(text, touch)
 
     override fun onSpace() {
         engine.onSpace()

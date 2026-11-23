@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.22 — 2026-11-22
+
+- **Where you touch a key counts:** taps near the edge of a key count toward the
+  neighbor, so a short word with two near misses ("rge") still comes out "the".
+- **Letters over the space bar:** c v b n m touched low read as a space
+  ("thisnis" -> "this is"). Very common words run together come apart
+  ("ofthe" -> "of the"; not in German). Only the space bar does it, never in a
+  #tag, @handle or before punctuation, and backspace undoes it.
+- **Space bar edges:** the nearest 12% of the comma and period keys is space.
+- **Rare listed words** ("ks") are corrected to a word at least 4000 times
+  commoner when the finger landed near the edge toward it.
+
 ## Unreleased — 2026-11-13
 
 - No app changes. 0.2.21 copied to the NAS (`_Transfer_/KeyX-0.2.21.apk`);

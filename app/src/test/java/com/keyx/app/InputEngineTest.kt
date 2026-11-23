@@ -8,6 +8,9 @@ import com.keyx.app.ime.Shift
 import com.keyx.app.predict.LearnedModel
 import com.keyx.app.predict.Suggester
 import com.keyx.app.predict.Suggestion
+import com.keyx.app.predict.Touch
+import com.keyx.app.layout.KeyType
+import com.keyx.app.ime.SpaceEdge
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -508,5 +511,45 @@ class InputEngineTest {
         engine.onRemoveSuggestion(word)
         assertTrue(engine.strip.all.none { it.text.equals(word, true) })
         assertTrue(LearnedModel.fromJson(learned.toJson()).isBlocked("en", word))
+    }
+
+    @Test
+    fun aSpaceSlipCommitsTwoWordsAndLearnsBoth() {
+        for (c in "thisnis") engine.onText(c.toString(), Touch(0f, if (c == 'n') 0.4f else 0f))
+        engine.onSpace()
+        assertEquals("This is ", ed.toString())
+        assertEquals(1, learned.count("en", "is"))
+        assertEquals(0, learned.count("en", "This is"))
+        // Backspace puts it back as typed, as any correction.
+        engine.onBackspace()
+        assertEquals("Thisnis", ed.toString())
+    }
+
+    @Test
+    fun tagsAndDomainsAreNotSplit() {
+        type("see #ofthe ")
+        assertEquals("See #ofthe ", ed.toString())
+        ed = FakeEditor()
+        engine.editor = ed
+        engine.startInput(FieldPolicy.from(chat, 0))
+        type("ofthe.com ")
+        assertTrue(ed.toString(), ed.toString().startsWith("Ofthe"))
+    }
+
+    @Test
+    fun theSpaceBarReachesJustPastItsEnds() {
+        assertTrue(SpaceEdge.claims(KeyType.PERIOD, 0.05f))
+        assertTrue(SpaceEdge.claims(KeyType.COMMA, 0.1f))
+        assertTrue(!SpaceEdge.claims(KeyType.PERIOD, 0.2f))
+        assertTrue(!SpaceEdge.claims(KeyType.ENTER, 0.05f))
+    }
+
+    @Test
+    fun touchesReachTheSuggester() {
+        engine.onText("r", Touch(0.45f, 0f))
+        engine.onText("g", Touch(0.45f, 0f))
+        engine.onText("e", Touch(0f, 0f))
+        engine.onSpace()
+        assertEquals("The ", ed.toString())
     }
 }

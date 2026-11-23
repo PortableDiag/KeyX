@@ -22,6 +22,7 @@ import com.keyx.app.layout.KeyType
 import com.keyx.app.predict.GestureDecoder
 import com.keyx.app.predict.Strip
 import com.keyx.app.predict.Suggestion
+import com.keyx.app.predict.Touch
 import com.keyx.app.theme.KeyboardTheme
 import kotlin.math.abs
 import kotlin.math.hypot
@@ -30,7 +31,8 @@ import kotlin.math.min
 
 /** What the keyboard view asks the service to do. */
 interface KeyboardActions {
-    fun onChar(text: String)
+    /** [touch] is where on the key the finger landed, for the touch model; null when not from a key tap. */
+    fun onChar(text: String, touch: Touch? = null)
     fun onSpace()
     fun onLanguageSwipe(forward: Boolean)
     fun onCursorSteps(steps: Int)
@@ -176,6 +178,19 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
             y += h
         }
         keysBottom = y
+    }
+
+    /** The space bar, when a touch on the comma or period next to it only just missed it. */
+    private fun spaceBeside(b: Box, x: Float): Box? {
+        if (!lettersPage || b.rect.width() <= 0f) return null
+        val space = boxes.firstOrNull { it.key.type == KeyType.SPACE } ?: return null
+        if (space.rect.top != b.rect.top) return null
+        val into = when {
+            abs(b.rect.right - space.rect.left) < 1f -> b.rect.right - x
+            abs(b.rect.left - space.rect.right) < 1f -> x - b.rect.left
+            else -> return null
+        }
+        return space.takeIf { SpaceEdge.claims(b.key.type, into / b.rect.width()) }
     }
 
     /** Centers of the letter keys, for the swipe decoder. */
@@ -1057,7 +1072,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
     }
 
     private fun keyDown(x: Float, y: Float) {
-        val b = boxAt(x, y) ?: run { mode = Mode.NONE; return }
+        val b = boxAt(x, y)?.let { spaceBeside(it, x) ?: it } ?: run { mode = Mode.NONE; return }
         pressedBox = b
         actions.onKeyDown()
         when (b.key.type) {
@@ -1132,7 +1147,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
                 } else {
                     null
                 }
-                if (flick != null) actions.onChar(flick) else tap(b.key)
+                if (flick != null) actions.onChar(flick) else tap(b)
             }
             Mode.GESTURE -> {
                 trail += GestureDecoder.Point(x, y)
@@ -1160,15 +1175,24 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         reset()
     }
 
-    private fun tap(k: Key) {
+    private fun tap(b: Box) {
+        val k = b.key
         when (k.type) {
-            KeyType.CHAR, KeyType.COMMA, KeyType.PERIOD -> actions.onChar(k.text)
+            KeyType.CHAR -> actions.onChar(k.text, touchOn(b))
+            KeyType.COMMA, KeyType.PERIOD -> actions.onChar(k.text)
             KeyType.ENTER -> actions.onEnter()
             KeyType.SYMBOLS, KeyType.SYMBOLS_MORE, KeyType.ALPHA -> actions.onPageKey(k.type)
             KeyType.EMOJI -> actions.onTool(Tool.EMOJI)
             KeyType.SPACE -> actions.onSpace()
             else -> Unit
         }
+    }
+
+    /** Where the finger landed on [b], from its center, in key widths and heights. */
+    private fun touchOn(b: Box): Touch? {
+        val r = b.rect
+        if (r.width() <= 0f || r.height() <= 0f) return null
+        return Touch((downX - r.centerX()) / r.width(), (downY - r.centerY()) / r.height())
     }
 
     private fun stripUp(x: Float, y: Float) {

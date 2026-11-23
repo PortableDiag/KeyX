@@ -2,6 +2,7 @@ package com.keyx.app
 
 import com.keyx.app.predict.LearnedModel
 import com.keyx.app.predict.Suggestion
+import com.keyx.app.predict.Touch
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -153,5 +154,66 @@ class SuggesterTest {
         assertEquals("the", en.forWord("th", null, autocorrect = true, emojiOn = false).left?.text)
         val ok = en.forWord("ok", null, autocorrect = true, emojiOn = false)
         assertTrue("OK is one tap away: ${ok.all + ok.extra}", (ok.all + ok.extra).any { it.text == "OK" })
+    }
+
+    private val center = Touch(0f, 0f)
+
+    private fun touched(typed: String, at: Int, t: Touch, s: com.keyx.app.predict.Suggester = en) =
+        s.forWord(typed, null, true, false, typed.indices.map { if (it == at) t else center }).autocorrect
+
+    @Test
+    fun aKnownRareWordIsASlipOnlyWhenTouchedTowardTheCommonOne() {
+        // i is up and to the left of k; n is to the right of b, and j above n.
+        assertEquals("is", touched("ks", 0, Touch(-0.2f, -0.45f)))
+        assertEquals("not", touched("nit", 1, Touch(0.45f, 0f)))
+        // Hit squarely, or with no touch to go by, they are what was typed.
+        for (w in listOf("ks", "nit", "jot", "shat", "aol", "ger", "mg")) {
+            // ("ger" -> "Ger" is only its case.)
+            for (c in listOf(corrected(w), touched(w, 0, center))) assertTrue("$w -> $c", c == null || c.equals(w, true))
+        }
+        // Everyday words are safe even at the edge.
+        for (w in listOf("thus", "lime", "tour", "van", "nor", "yo", "bug")) assertNull(w, touched(w, 0, Touch(0.45f, 0f)))
+    }
+
+    @Test
+    fun aWordTheOperatorUsesIsNeverShadowed() {
+        val learned = LearnedModel()
+        learned.learn("en", null, "nit", 2)
+        assertNull(touched("nit", 1, Touch(0.45f, 0f), TestData.suggester(learned = learned)))
+    }
+
+    @Test
+    fun aLetterTouchedTowardTheSpaceBarSplitsTheWords() {
+        val low = Touch(0f, 0.4f)
+        assertEquals("this is", touched("thisnis", 4, low))
+        assertEquals("This is", touched("Thisnis", 4, low))
+        assertEquals("want to", touched("wantbto", 4, low))
+        // Hit squarely it is offered, not forced.
+        assertTrue(touched("wantbto", 4, center).let { it == null || ' ' !in it })
+    }
+
+    @Test
+    fun commonWordsRunTogetherAreTakenApartButRealWordsAreNot() {
+        assertEquals("of the", corrected("ofthe"))
+        assertEquals("in the", corrected("inthe"))
+        for (w in listOf("trelliscards", "windburn", "inpatient", "sidewall", "schoolbook", "overbite", "mybank", "bookends")) {
+            val c = corrected(w)
+            assertTrue("$w -> $c", c == null || ' ' !in c)
+        }
+        val de = TestData.suggester("de_DE")
+        for (w in listOf("frauenhaus", "kindergeld", "sonnenschein", "haustür")) {
+            val c = corrected(w, de)
+            assertTrue("$w -> $c", c == null || ' ' !in c)
+        }
+    }
+
+    @Test
+    fun whereTheKeyWasTouchedMakesANearMissCheap() {
+        // r and g each hit right on their edge toward t and h: two near misses, not two slips.
+        val edges = listOf(Touch(0.45f, 0f), Touch(0.45f, 0f), center)
+        assertEquals("the", en.forWord("rge", null, autocorrect = true, emojiOn = false, touches = edges).autocorrect)
+        // The same letters hit dead center are what was typed.
+        val middles = listOf(center, center, center)
+        assertTrue(en.forWord("rge", null, autocorrect = true, emojiOn = false, touches = middles).autocorrect != "the")
     }
 }

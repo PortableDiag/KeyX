@@ -90,6 +90,9 @@ class Dictionary(entries: List<Pair<String, Int>>) {
     /** The [n] most frequent words, for predictions with no context at all. */
     fun top(n: Int): List<Entry> = topWords.take(n)
 
+    /** The [n] commonest words, past the [top] list's cap; sorts the whole list, so call it once. */
+    fun ranked(n: Int): List<Entry> = if (n <= TOP) top(n) else sorted.sortedByDescending { it.count }.take(n)
+
     private val topWords: List<Entry> by lazy { sorted.sortedByDescending { it.count }.take(TOP) }
 
     private fun lowerBound(key: String): Int {

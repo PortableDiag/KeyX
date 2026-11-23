@@ -52,6 +52,7 @@ class Suggester(
         val emojiOn: Boolean,
         val learnedVersion: Long,
         val extraCount: Int,
+        val touches: List<Touch?>?,
     )
     private var lastQuery: Query? = null
     private var lastStrip = Strip.EMPTY
@@ -60,13 +61,20 @@ class Suggester(
      * Runs on the main thread on every keystroke, and again when space asks for
      * the correction; the second ask is answered from the first.
      */
-    fun forWord(typed: String, previous: String?, autocorrect: Boolean, emojiOn: Boolean): Strip {
-        val q = Query(typed, previous, autocorrect, emojiOn, learned.version, extraCount)
+    fun forWord(
+        typed: String,
+        previous: String?,
+        autocorrect: Boolean,
+        emojiOn: Boolean,
+        touches: List<Touch?>? = null,
+    ): Strip {
+        val t = touches?.takeIf { it.size == typed.length && it.any { x -> x != null } }
+        val q = Query(typed, previous, autocorrect, emojiOn, learned.version, extraCount, t)
         if (q == lastQuery) return lastStrip
-        return compute(typed, previous, autocorrect, emojiOn).also { lastQuery = q; lastStrip = it }
+        return compute(typed, previous, autocorrect, emojiOn, t).also { lastQuery = q; lastStrip = it }
     }
 
-    private fun compute(typed: String, previous: String?, autocorrect: Boolean, emojiOn: Boolean): Strip {
+    private fun compute(typed: String, previous: String?, autocorrect: Boolean, emojiOn: Boolean, touches: List<Touch?>?): Strip {
         if (typed.isEmpty()) return predictNext(previous, emojiOn)
         val lower = typed.lowercase()
         val known = isKnown(typed)
@@ -84,16 +92,16 @@ class Suggester(
         for ((w, _) in learned.completions(language, lower, max(6, extraCount))) {
             if (!w.equals(typed, true)) offer(w, prior(w, previous) - COMPLETION_PENALTY)
         }
-        val fuzzy = corrections(lower, previous).filterNot { learned.isBlocked(language, it.first) }
-        for ((form, s) in fuzzy) offer(form, s)
+        val fixes = fixes(lower, previous, touches).filterNot { learned.isBlocked(language, it.form) }
+        for (f in fixes) offer(f.form, f.score)
         ranked.remove(lower)
 
-        val best = fuzzy.firstOrNull()
+        val best = fixes.firstOrNull { it.force }
         val correction = when {
             !autocorrect -> null
-            known -> apostropheFix(typed) ?: caseFix(typed)
+            known -> apostropheFix(typed) ?: shadowFix(typed, previous, fixes) ?: caseFix(typed)
             !canCorrect(typed) -> null
-            best != null -> matchCase(typed, best.first)
+            best != null -> matchCase(typed, best.form)
             else -> null
         }
         val others = ranked.values.sortedByDescending { it.second }
@@ -150,9 +158,19 @@ class Suggester(
         )
     }
 
+    /**
+     * A candidate for what was meant: [cost] is the edit distance, [score] the ranking
+     * with it. One that is not [force]d is offered in the strip but never autocorrected.
+     */
+    private class Fix(val form: String, val score: Double, val cost: Double, val force: Boolean = true)
+
     /** Fuzzy matches for a typed word, best first, each as (form, score). */
-    fun corrections(lower: String, previous: String?): List<Pair<String, Double>> {
+    fun corrections(lower: String, previous: String?, touches: List<Touch?>? = null): List<Pair<String, Double>> =
+        fixes(lower, previous, touches).map { it.form to it.score }
+
+    private fun fixes(lower: String, previous: String?, touches: List<Touch?>?): List<Fix> {
         if (lower.length < 2 || lower.any { it.isDigit() }) return emptyList()
+        val t = touches?.takeIf { it.size == lower.length }
         val budget = when {
             lower.length <= 3 -> 1.0
             lower.length <= 6 -> 1.6
@@ -165,21 +183,82 @@ class Suggester(
         firsts += first
         firsts += base(lower[1])
         for (c in grid.letters) if (grid.adjacent(c, first)) firsts += base(c)
-        val out = ArrayList<Pair<String, Double>>()
+        val out = ArrayList<Fix>()
         for (e in dictionary.candidates(firsts, lower.length, 2)) {
             if (e.lower == lower) continue
-            val cost = editCost(lower, e.lower, budget)
-            if (cost <= budget) out += e.word to (prior(e.word, previous) - EDIT_WEIGHT * cost)
+            val cost = editCost(lower, e.lower, budget, t)
+            if (cost <= budget) out += Fix(e.word, prior(e.word, previous) - EDIT_WEIGHT * cost, cost)
         }
         for ((w, _) in learned.all(language)) {
             val l = w.lowercase()
             if (l == lower || kotlin.math.abs(l.length - lower.length) > 2 || base(l[0]) !in firsts) continue
             if (learned.count(language, w) < KNOWN_AFTER) continue
-            val cost = editCost(lower, l, budget)
-            if (cost <= budget) out += w to (prior(w, previous) - EDIT_WEIGHT * cost)
+            val cost = editCost(lower, l, budget, t)
+            if (cost <= budget) out += Fix(w, prior(w, previous) - EDIT_WEIGHT * cost, cost)
         }
+        splits(lower, previous, t, out)
         // One entry per word, in the form that scored best ("leben" vs "Leben").
-        return out.sortedByDescending { it.second }.distinctBy { it.first.lowercase() }.take(8)
+        return out.sortedByDescending { it.score }.distinctBy { it.form.lowercase() }.take(8)
+    }
+
+    /**
+     * Two words run together: a thumb aimed at space that landed on a letter above it
+     * ("thisnis" -> "this is"), or space missed altogether ("ofthe" -> "of the").
+     * Real words missing from the list look just like this ("windburn", "inpatient"),
+     * so a split is forced only when the letter was touched low, toward the space bar,
+     * or when both halves are among the commonest words. The rest are one tap away.
+     */
+    private fun splits(lower: String, previous: String?, touches: List<Touch?>?, out: MutableList<Fix>) {
+        if (lower.length < 3 || !lower.all { it.isLetter() || it == '\'' }) return
+        fun pair(left: String, right: String, cost: Double, force: Boolean) {
+            if (left !in everyday || right !in everyday) return
+            val l = splitForm(left) ?: return
+            val r = splitForm(right) ?: return
+            out += Fix("$l $r", min(prior(l, previous), prior(r, l)) - EDIT_WEIGHT * cost - SPLIT_PENALTY, cost, force)
+        }
+        for (i in 1 until lower.length - 1) {
+            if (lower[i] !in grid.nearSpace) continue
+            val t = touches?.getOrNull(i)
+            // Low on the key is where a thumb headed for the space bar lands; high on it is the letter.
+            val low = t != null && t.dy > LOW_TOUCH
+            if (t != null && t.dy < -LOW_TOUCH) continue
+            // A one-letter half ("inthe" -> "I the") is the less likely reading of a slip.
+            val oneLetter = if (i == 1 || i == lower.length - 2) ONE_LETTER_HALF else 0.0
+            pair(lower.substring(0, i), lower.substring(i + 1), (if (low) SPACE_SLIP_LOW else SPACE_SLIP) + oneLetter, force = low)
+        }
+        for (i in 1 until lower.length) {
+            val left = lower.substring(0, i)
+            val right = lower.substring(i)
+            // German writes its compounds in one word: two common words together are a word.
+            pair(left, right, MISSED_SPACE, force = language != "de" && left in common && right in common)
+        }
+    }
+
+    /** The form a half of a split word is written in ("i" -> "I"), or null when it isn't a word. */
+    private fun splitForm(part: String): String? {
+        if (part.length <= 2 && part !in common) return null
+        if (!isKnown(part)) return null
+        val forms = dictionary.forms(part).filterNot { learned.isBlocked(language, it.word) }
+        val form = forms.firstOrNull { it.word == part }?.word ?: forms.firstOrNull()?.word ?: part
+        return form.takeUnless { learned.isBlocked(language, it) }
+    }
+
+    private val rankedWords: List<String> by lazy { dictionary.ranked(EVERYDAY).map { it.lower } }
+    private val common: Set<String> by lazy { rankedWords.take(COMMON).toHashSet() }
+    private val everyday: Set<String> by lazy { rankedWords.toHashSet() }
+
+    /**
+     * "ks" -> "is": the subtitle word lists hold abbreviations and typos, so a slip onto
+     * one counted as known and was never corrected. Real but rare words ("jot") look the
+     * same by frequency, so it takes both: the finger landed near the edge toward the
+     * other key, and that word is thousands of times commoner.
+     */
+    private fun shadowFix(typed: String, previous: String?, fixes: List<Fix>): String? {
+        if (!canCorrect(typed) || learned.count(language, typed) >= KNOWN_AFTER) return null
+        val own = prior(typed, previous)
+        val best = fixes.firstOrNull { it.cost <= SHADOW_COST && it.form.length == typed.length && ' ' !in it.form }
+            ?: return null
+        return if (best.score + EDIT_WEIGHT * best.cost - own >= SHADOW_MARGIN) matchCase(typed, best.form) else null
     }
 
     /** log-scale likelihood of [word] here: how common it is, how often the operator uses it, and after what. */
@@ -196,7 +275,7 @@ class Suggester(
      * letter, a missing apostrophe or accent all cost less than a random edit.
      * Returns early with [bound] + 1 once no alignment can come in under [bound].
      */
-    fun editCost(typed: String, word: String, bound: Double): Double {
+    fun editCost(typed: String, word: String, bound: Double, touches: List<Touch?>? = null): Double {
         val n = typed.length
         val m = word.length
         var prev2 = DoubleArray(m + 1)
@@ -209,7 +288,7 @@ class Suggester(
             for (j in 1..m) {
                 val a = typed[i - 1]
                 val b = word[j - 1]
-                var best = prev[j - 1] + subCost(a, b)
+                var best = prev[j - 1] + subCost(a, b, touches?.getOrNull(i - 1))
                 best = min(best, prev[j] + delCost(typed, i - 1))
                 best = min(best, cur[j - 1] + insCost(word, j - 1))
                 if (i > 1 && j > 1 && a == word[j - 2] && typed[i - 2] == b && a != b) {
@@ -224,11 +303,20 @@ class Suggester(
         return prev[m]
     }
 
-    private fun subCost(a: Char, b: Char): Double = when {
+    /**
+     * Typing [a] where [b] was meant. With where the finger landed, the cost follows
+     * how close it came to [b]: the edge of `g` toward `h` is nearly free, the far
+     * side of `g` is no closer to `h` than a whole slip.
+     */
+    private fun subCost(a: Char, b: Char, touch: Touch? = null): Double = when {
         a == b -> 0.0
         base(a) == base(b) -> ACCENT
-        grid.adjacent(a, b) -> NEIGHBOR
-        else -> 1.0
+        !grid.adjacent(a, b) -> 1.0
+        touch == null -> NEIGHBOR
+        else -> {
+            val ratio = grid.touchDistance(a, touch, b) / grid.distance(a, b)
+            (NEIGHBOR * ratio * ratio).coerceIn(MIN_NEIGHBOR, 1.0)
+        }
     }
 
     /** The word has a character the typed text lacks. */
@@ -302,6 +390,23 @@ class Suggester(
         private const val LEARNED_WEIGHT = 2.5
         private const val PAIR_WEIGHT = 2.0
         private const val NEIGHBOR = 0.6
+        /** A tap right on the border between two keys still prefers the key it hit. */
+        private const val MIN_NEIGHBOR = 0.1
+        /** A letter over the space bar typed for a space; low on the key, cheaper. */
+        private const val SPACE_SLIP = 0.5
+        private const val SPACE_SLIP_LOW = 0.25
+        private const val LOW_TOUCH = 0.2f
+        private const val MISSED_SPACE = 0.4
+        private const val ONE_LETTER_HALF = 0.5
+        private const val SPLIT_PENALTY = 1.5
+        /** Words this high in the list, run together with no space, are taken apart by the space bar. */
+        private const val COMMON = 300
+        /** Both halves of any split are this common. */
+        private const val EVERYDAY = 2000
+        /** A known word is corrected only by one touch near the edge, below the cost of a centered one ([NEIGHBOR]). */
+        private const val SHADOW_COST = 0.35
+        /** ln(4000): how much commoner the other word must be. */
+        private const val SHADOW_MARGIN = 8.3
         private const val ACCENT = 0.2
         private const val APOSTROPHE = 0.15
         /** How much more common the apostrophe form must be before a known bare spelling is corrected. */

@@ -5,6 +5,7 @@ import com.keyx.app.predict.LearnedModel
 import com.keyx.app.predict.Strip
 import com.keyx.app.predict.Suggester
 import com.keyx.app.predict.Suggestion
+import com.keyx.app.predict.Touch
 
 /** The text field, as the engine sees it. The service adapts an InputConnection to it. */
 interface Editor {
@@ -62,6 +63,18 @@ class InputEngine(
 
     private val composing = StringBuilder()
     val composingText: String get() = composing.toString()
+
+    /**
+     * Where each letter of the composing word was touched, for the suggester's
+     * touch model. Valid only while [touchWord] still is the composing word: any
+     * other rewrite of the word (adopting, swiping, picking) leaves it stale, and
+     * stale touches are simply not used.
+     */
+    private val touches = ArrayList<Touch?>()
+    private var touchWord = ""
+
+    private fun currentTouches(): List<Touch?>? =
+        touches.takeIf { it.size == composing.length && touchWord.equals(composing.toString(), ignoreCase = true) }
 
     /** The word before the composing one, read once when the word starts. */
     private var composingPrevious: String? = null
@@ -127,7 +140,7 @@ class InputEngine(
 
     // ---- keys -------------------------------------------------------------
 
-    fun onText(text: String) {
+    fun onText(text: String, touch: Touch? = null) {
         val ed = editor ?: return
         val markSpace = takeMarkSpace(ed)
         val swapped = swappedMark.takeIf { markSpace && ed.before(2) == "$it " }
@@ -146,7 +159,13 @@ class InputEngine(
                 // back to "Boa", type "ring", and the word is "Boaring", not "ring".
                 if (composing.isEmpty()) adoptWordBeforeCursor()
                 if (composing.isEmpty()) composingPrevious = previousWordIn(ed.before(64))
+                if (currentTouches() == null) {
+                    touches.clear()
+                    repeat(composing.length) { touches.add(null) }
+                }
                 composing.append(if (camel != null) text.uppercase() else applyShift(text))
+                while (touches.size < composing.length) touches.add(touch)
+                touchWord = composing.toString()
                 ed.setComposing(composing.toString())
             }
             if (shift == Shift.ONCE) shift = Shift.OFF
@@ -294,7 +313,12 @@ class InputEngine(
                 ed.batch { ed.setComposing(""); ed.finishComposing() }
             }
             composing.isNotEmpty() -> {
+                val valid = currentTouches() != null
                 composing.setLength(composing.length - Character.charCount(composing.codePointBefore(composing.length)))
+                if (valid) {
+                    while (touches.size > composing.length) touches.removeAt(touches.size - 1)
+                    touchWord = composing.toString()
+                }
                 ed.batch {
                     if (composing.isEmpty()) {
                         ed.setComposing("")
@@ -572,7 +596,8 @@ class InputEngine(
         }
         domainDot = null
         val correction = if (correct && typed != keepAsTyped && !innerCapital(typed) && policy.autocorrect && options.autocorrect) {
-            suggester?.forWord(typed, previousWord(), autocorrect = true, emojiOn = false)?.autocorrect
+            suggester?.forWord(typed, previousWord(), autocorrect = true, emojiOn = false, touches = currentTouches())?.autocorrect
+                ?.takeUnless { ' ' in it && (separator != " " || !standsAlone(ed)) }
         } else {
             null
         }
@@ -580,12 +605,24 @@ class InputEngine(
         val prev = previousWord()
         ed.commit(word + separator)
         lastCorrection = if (correction != null && correction != typed) Correction(typed, word, separator) else null
-        learn(prev, word, if (typed == keepAsTyped) Suggester.KNOWN_AFTER else 1)
+        // A split ("thisnis" -> "this is") is learned as the two words it is.
+        var p = prev
+        for (part in word.split(' ')) {
+            learn(p, part, if (typed == keepAsTyped) Suggester.KNOWN_AFTER else 1)
+            p = part
+        }
         keepAsTyped = null
         composing.setLength(0)
         fromGesture = false
         recased = null
     }
+
+    /**
+     * The composing word is the whole token. "#lovethis", "@ofthe" and "a/ofthe" are tags,
+     * handles and paths, and before a mark it may be a domain ("mybank.com"): those are
+     * never split; only the space bar after a plain word is.
+     */
+    private fun standsAlone(ed: Editor): Boolean = tokenBefore(ed.before(64)).length <= composing.length
 
     private fun learn(previous: String?, word: String, weight: Int = 1) {
         if (!policy.learn || language.isEmpty()) return
@@ -669,8 +706,18 @@ class InputEngine(
                     !innerCapital(composing.toString()) &&
                     !completesDomain(composing.toString()),
                 emojiOn = options.emojiPredictions,
+                touches = currentTouches(),
             )
             else -> sg.predictNext(previousWord(), options.emojiPredictions)
+        }.let {
+            // What the strip promises is what space does: no split inside a tag or a path.
+            val e = editor
+            val split = it.autocorrect
+            if (split != null && ' ' in split && e != null && !standsAlone(e)) {
+                it.copy(left = it.center, center = Suggestion(composingText, Suggestion.Kind.TYPED), autocorrect = null)
+            } else {
+                it
+            }
         }.let { if (caseOnly(it.autocorrect)) it.copy(left = null, center = Suggestion(composingText, Suggestion.Kind.TYPED), autocorrect = null) else it }
         listener?.invoke()
     }
