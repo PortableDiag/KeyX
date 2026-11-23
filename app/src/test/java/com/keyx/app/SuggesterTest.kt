@@ -216,4 +216,24 @@ class SuggesterTest {
         val middles = listOf(center, center, center)
         assertTrue(en.forWord("rge", null, autocorrect = true, emojiOn = false, touches = middles).autocorrect != "the")
     }
+
+    @Test
+    fun aWordCutByAStraySpaceIsRejoinedButRealPairsAreNot() {
+        assertEquals("have", en.rejoin("hav", "e", false))
+        assertEquals("because", en.rejoin("becaus", "e", false))
+        assertEquals("There", en.rejoin("Ther", "e", false))
+        // Space hit for the v above it, only when touched high.
+        assertEquals("believe", en.rejoin("belie", "e", true))
+        assertNull(en.rejoin("belie", "e", false))
+        for ((l, r) in listOf("me" to "n", "plan" to "b", "wind" to "burn", "an" to "other", "to" to "day", "with" to "in")) {
+            assertNull("$l $r", en.rejoin(l, r, true))
+        }
+    }
+
+    @Test
+    fun bundledPairsGiveContextBeforeAnythingIsLearned() {
+        assertTrue(en.prior("much", "very") > en.prior("much", null))
+        val next = en.predictNext("thank", emojiOn = false)
+        assertTrue("$next", next.all.any { it.text.equals("you", true) })
+    }
 }

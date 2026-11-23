@@ -83,11 +83,78 @@ class InputEngine(
     private var fromGesture = false
     private var gestureAlternatives: List<String> = emptyList()
 
-    private data class Correction(val original: String, val replacement: String, val separator: String)
+    /** [prefix] is what else goes back before the word: the left half of a rejoined one. */
+    private data class Correction(val original: String, val replacement: String, val separator: String, val prefix: String = "")
     private var lastCorrection: Correction? = null
 
     /** A word the operator reverted a correction on; it is not corrected again this time. */
     private var keepAsTyped: String? = null
+
+    /** The word the last space committed: [typed] before any correction, [learned] what was learned from it. */
+    private data class Spaced(val typed: String, val committed: String, val previous: String?, val learned: List<String>, val high: Boolean)
+    private var lastSpaced: Spaced? = null
+    private var spaceHigh = false
+
+    /** (zone, miss) for each letter of the last word; learned once the next word says it stood. */
+    private val pendingAim = ArrayList<Pair<Int, Touch>>()
+
+    private fun dropPending() {
+        pendingAim.clear()
+        lastSpaced = null
+    }
+
+    /** The space bar was touched in its upper third, where a letter above it is missed. */
+    private fun Touch?.isHigh() = this != null && dy < -0.17f
+
+    /** The composing word and the one before it, when together they are one word a space cut in two. */
+    private fun rejoined(): String? {
+        val ed = editor ?: return null
+        val left = lastSpaced ?: return null
+        if (fromGesture || composing.isEmpty() || !policy.autocorrect || !options.autocorrect) return null
+        val typed = composing.toString()
+        if (typed == keepAsTyped) return null
+        val cut = left.committed + " "
+        val before = ed.before(64)
+        val start = before.length - cut.length - typed.length
+        if (!before.endsWith(cut + typed) || (start > 0 && !before[start - 1].isWhitespace())) return null
+        return suggester?.rejoin(left.typed, typed, left.high)
+    }
+
+    /** Replaces the cut word with [whole]. The caller is in a batch. */
+    private fun commitRejoined(ed: Editor, whole: String, separator: String) {
+        val left = lastSpaced!!
+        val typed = composing.toString()
+        if (policy.learn && language.isNotEmpty()) {
+            var p = left.previous
+            for (w in left.learned) { learned.unlearn(language, p, w); p = w }
+        }
+        ed.setComposing("")
+        ed.deleteBefore(left.committed.length + 1)
+        ed.commit(whole + separator)
+        composing.setLength(0)
+        recased = null
+        domainDot = null
+        keepAsTyped = null
+        lastCorrection = Correction(typed, whole, separator, prefix = left.committed + " ")
+        dropPending()
+        learn(left.previous, whole)
+    }
+
+    private fun flushAim() {
+        for ((zone, miss) in pendingAim) learned.aim.learn(zone, miss.dx, miss.dy)
+        pendingAim.clear()
+    }
+
+    /** Once [word] stands, each letter's touch says how far the finger lands from the letter meant. */
+    private fun noteAim(typed: String, word: String, at: List<Touch?>?) {
+        val sg = suggester ?: return
+        if (!policy.learn || at == null || typed.length != word.length || ' ' in word || !sg.isKnown(word)) return
+        for (i in typed.indices) {
+            val t = at[i] ?: continue
+            if (t.zone < 0) continue
+            sg.missFrom(typed[i], t, word[i])?.let { pendingAim += t.zone to it }
+        }
+    }
 
     /** The space before the cursor was inserted after a word, so punctuation may swap with it. */
     private var autoSpace = false
@@ -125,6 +192,7 @@ class InputEngine(
 
     fun startInput(policy: FieldPolicy) {
         this.policy = policy
+        dropPending()
         composing.clear()
         fromGesture = false
         lastCorrection = null
@@ -229,8 +297,9 @@ class InputEngine(
         refreshStrip()
     }
 
-    fun onSpace() {
+    fun onSpace(touch: Touch? = null) {
         val ed = editor ?: return
+        spaceHigh = touch.isHigh()
         if (takeMarkSpace(ed) && composing.isEmpty()) {
             // The mark already brought its space; this one is the habit of typing it —
             // and says the dot ended a sentence, not a domain name.
@@ -275,6 +344,7 @@ class InputEngine(
         ed.batch {
             if (markSpace && composing.isEmpty()) ed.deleteBefore(1)
             commitComposing("", correct = !fromGesture)
+            flushAim()
             val action = policy.enterAction
             if (action != null) ed.editorAction(action) else ed.commit("\n")
         }
@@ -287,12 +357,14 @@ class InputEngine(
     fun onBackspace() {
         val ed = editor ?: return
         spaceAfterMark = false
+        dropPending()
         val undo = lastCorrection
         lastWasSpace = false
         if (undo != null && ed.before(undo.replacement.length + undo.separator.length) == undo.replacement + undo.separator) {
             // Backspace straight after a correction puts back what was typed, and keeps it.
             ed.batch {
                 ed.deleteBefore(undo.replacement.length + undo.separator.length)
+                if (undo.prefix.isNotEmpty()) ed.commit(undo.prefix)
                 composingPrevious = previousWordIn(ed.before(64))
                 composing.setLength(0)
                 composing.append(undo.original)
@@ -340,6 +412,7 @@ class InputEngine(
     /** Backspace swiped left: the whole previous word, and the spaces after it. */
     fun onDeleteWord() {
         val ed = editor ?: return
+        dropPending()
         spaceAfterMark = false
         lastCorrection = null
         autoSpace = false
@@ -387,6 +460,12 @@ class InputEngine(
                 }
                 else -> {
                     val word = s.text
+                    val whole = if (s.kind == Suggestion.Kind.CORRECTION) rejoined()?.takeIf { it == word } else null
+                    if (whole != null) {
+                        commitRejoined(ed, whole, " ")
+                        return@batch
+                    }
+                    dropPending()
                     // Tapping the word exactly as typed is how a new word is taught.
                     val weight = if (s.kind == Suggestion.Kind.TYPED) Suggester.KNOWN_AFTER else 1
                     val prev = previousWord()
@@ -474,6 +553,7 @@ class InputEngine(
     /** The cursor moved somewhere the engine did not put it — a tap in the text, an arrow key. */
     fun onCursorMoved() {
         val ed = editor ?: return
+        dropPending()
         spaceAfterMark = false
         domainDot = null
         if (composing.isNotEmpty()) {
@@ -581,6 +661,12 @@ class InputEngine(
             return
         }
         val typed = composing.toString()
+        if (correct && separator == " ") {
+            rejoined()?.let { commitRejoined(ed, it, separator); return }
+        }
+        // Another word follows, so the last one stood.
+        flushAim()
+        val at = currentTouches()?.toList()
         if (completesDomain(typed)) {
             // "dry. Ai" -> "dry.ai": the space and the capital were the sentence rules guessing wrong.
             val dot = domainDot!!
@@ -610,6 +696,12 @@ class InputEngine(
         for (part in word.split(' ')) {
             learn(p, part, if (typed == keepAsTyped) Suggester.KNOWN_AFTER else 1)
             p = part
+        }
+        noteAim(typed, word, at)
+        lastSpaced = if (separator == " " && !fromGesture && typed != keepAsTyped) {
+            Spaced(typed, word, prev, word.split(' '), spaceHigh)
+        } else {
+            null
         }
         keepAsTyped = null
         composing.setLength(0)
@@ -709,6 +801,14 @@ class InputEngine(
                 touches = currentTouches(),
             )
             else -> sg.predictNext(previousWord(), options.emojiPredictions)
+        }.let {
+            // A word a space cut in two: the center is the whole word, as space will write it.
+            val whole = if (policy.suggest && options.predictions && sg != null) rejoined() else null
+            if (whole == null) it else it.copy(
+                left = Suggestion(composingText, Suggestion.Kind.TYPED),
+                center = Suggestion(whole, Suggestion.Kind.CORRECTION),
+                autocorrect = whole,
+            )
         }.let {
             // What the strip promises is what space does: no split inside a tag or a path.
             val e = editor

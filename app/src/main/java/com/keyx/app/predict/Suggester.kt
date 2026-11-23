@@ -36,6 +36,7 @@ class Suggester(
     private val learned: LearnedModel,
     private val grid: KeyGrid,
     private val emoji: EmojiPredictor? = null,
+    private val pairs: WordPairs = WordPairs.EMPTY,
 ) {
     /** A word the operator has used this often is theirs, and is never "corrected". */
     fun isKnown(word: String): Boolean =
@@ -143,7 +144,13 @@ class Suggester(
     /** Next-word predictions after a committed word, or the commonest words with no context. */
     fun predictNext(previous: String?, emojiOn: Boolean): Strip {
         val words = ArrayList<String>()
-        if (previous != null) words += learned.next(language, previous, 3 + extraCount)
+        if (previous != null) {
+            words += learned.next(language, previous, 3 + extraCount)
+            for (w in pairs.next(previous, 3 + extraCount)) {
+                val form = dictionary.forms(w).firstOrNull()?.word ?: continue
+                if (words.none { it.equals(form, true) } && !learned.isBlocked(language, form)) words += form
+            }
+        }
         for (e in dictionary.top(8 + extraCount * 2)) {
             if (words.size >= 3 + extraCount) break
             if (words.none { it.equals(e.word, true) } && !learned.isBlocked(language, e.word)) words += e.word
@@ -234,6 +241,40 @@ class Suggester(
         }
     }
 
+    /**
+     * One word cut in two by a stray space ("hav e" -> "have"), or by a space hit for a
+     * letter above it ("belie e" -> "believe", only when the space was touched [high]). [left] must
+     * be no everyday word, nothing the operator types, and far rarer than the whole; the
+     * whole must be everyday. So "me n you", "plan b" and "wind burn" stay as they are.
+     */
+    fun rejoin(left: String, right: String, high: Boolean): String? {
+        val l = left.lowercase()
+        val r = right.lowercase()
+        if (l.isEmpty() || r.isEmpty() || !(l + r).all { it.isLetter() || it == '\'' }) return null
+        if (right.any { it.isUpperCase() } || left.drop(1).any { it.isUpperCase() }) return null
+        // The left half was itself learned once, when its space was typed.
+        if (l in everyday || learned.count(language, l) > 1) return null
+        if (r.length > 1 && isKnown(r) && r !in common) return null
+        val whole = sequence {
+            yield(l + r)
+            if (high) for (c in grid.nearSpace) yield(l + c + r)
+        }.filter { it in everyday && !learned.isBlocked(language, it) }
+            .filter { dictionary.count(it) >= REJOIN_RATIO * max(1, dictionary.count(l)) }
+            .maxByOrNull { dictionary.count(it) } ?: return null
+        val form = dictionary.forms(whole).firstOrNull { it.word == whole }?.word ?: dictionary.forms(whole).first().word
+        return matchCase(left, form)
+    }
+
+    /** How far a touch that typed [typed] landed from the center of [meant], with no aim taken out. */
+    fun missFrom(typed: Char, touch: Touch, meant: Char): Touch? {
+        val a = grid.position(typed) ?: return null
+        val b = grid.position(meant) ?: return null
+        return Touch(
+            (a.first - b.first).toFloat() + touch.dx + touch.aimX,
+            (a.second - b.second).toFloat() + touch.dy + touch.aimY,
+        )
+    }
+
     /** The form a half of a split word is written in ("i" -> "I"), or null when it isn't a word. */
     private fun splitForm(part: String): String? {
         if (part.length <= 2 && part !in common) return null
@@ -243,9 +284,8 @@ class Suggester(
         return form.takeUnless { learned.isBlocked(language, it) }
     }
 
-    private val rankedWords: List<String> by lazy { dictionary.ranked(EVERYDAY).map { it.lower } }
-    private val common: Set<String> by lazy { rankedWords.take(COMMON).toHashSet() }
-    private val everyday: Set<String> by lazy { rankedWords.toHashSet() }
+    private val common: Set<String> = dictionary.ranked.take(COMMON).toHashSet()
+    private val everyday: Set<String> = dictionary.ranked.toHashSet()
 
     /**
      * "ks" -> "is": the subtitle word lists hold abbreviations and typos, so a slip onto
@@ -267,7 +307,8 @@ class Suggester(
             .let { it ?: dictionary.count(word) })
         val mine = learned.count(language, word)
         val pair = if (previous != null) learned.pair(language, previous, word) else 0
-        return base + LEARNED_WEIGHT * ln(1.0 + mine) + PAIR_WEIGHT * ln(1.0 + pair)
+        val context = if (previous != null) min(MAX_LIFT, pairs.lift(previous, word)) else 0.0
+        return base + LEARNED_WEIGHT * ln(1.0 + mine) + PAIR_WEIGHT * ln(1.0 + pair) + context
     }
 
     /**
@@ -389,6 +430,10 @@ class Suggester(
         private const val COMPLETION_PENALTY = 1.5
         private const val LEARNED_WEIGHT = 2.5
         private const val PAIR_WEIGHT = 2.0
+        /** The most the bundled word pairs can add: e^4, about 50 times likelier. */
+        private const val MAX_LIFT = 4.0
+        /** How much commoner a rejoined word must be than its left half. */
+        private const val REJOIN_RATIO = 1000
         private const val NEIGHBOR = 0.6
         /** A tap right on the border between two keys still prefers the key it hit. */
         private const val MIN_NEIGHBOR = 0.1
@@ -401,8 +446,6 @@ class Suggester(
         private const val SPLIT_PENALTY = 1.5
         /** Words this high in the list, run together with no space, are taken apart by the space bar. */
         private const val COMMON = 300
-        /** Both halves of any split are this common. */
-        private const val EVERYDAY = 2000
         /** A known word is corrected only by one touch near the edge, below the cost of a centered one ([NEIGHBOR]). */
         private const val SHADOW_COST = 0.35
         /** ln(4000): how much commoner the other word must be. */

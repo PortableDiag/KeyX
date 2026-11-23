@@ -7,7 +7,15 @@ import kotlin.math.hypot
  * widths across and key heights down. It is what lets a tap on the edge of `g`
  * count as nearly an `h`, as SwiftKey's touch model does, instead of a whole slip.
  */
-data class Touch(val dx: Float, val dy: Float)
+data class Touch(
+    val dx: Float,
+    val dy: Float,
+    /** The part of the row it landed in, for [AimModel]; -1 when aim isn't learned from it. */
+    val zone: Int = -1,
+    /** The aim already taken out of [dx] and [dy]. */
+    val aimX: Float = 0f,
+    val aimY: Float = 0f,
+)
 
 /**
  * Where each letter sits on the current layout, in key widths. It is what makes

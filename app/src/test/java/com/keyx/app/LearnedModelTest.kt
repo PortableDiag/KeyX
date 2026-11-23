@@ -2,6 +2,7 @@ package com.keyx.app
 
 import com.keyx.app.data.Sealer
 import com.keyx.app.predict.LearnedModel
+import com.keyx.app.predict.AimModel
 import org.json.JSONObject
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -76,5 +77,34 @@ class LearnedModelTest {
             throw AssertionError("tampered data opened")
         } catch (_: AEADBadTagException) {
         }
+    }
+
+    @Test
+    fun aimNeedsEnoughTapsIsCappedSavedAndReset() {
+        val m = LearnedModel()
+        repeat(AimModel.MIN_SAMPLES - 1) { m.aim.learn(2, 0.1f, 0.2f) }
+        assertEquals(0f, m.aim.offset(2).dy, 0f)
+        m.aim.learn(2, 0.1f, 0.2f)
+        assertEquals(0.2f, m.aim.offset(2).dy, 0.01f)
+        assertEquals("other zones untouched", 0f, m.aim.offset(3).dy, 0f)
+        repeat(100) { m.aim.learn(4, 0.7f, 0f) }
+        assertEquals(AimModel.MAX_SHIFT, m.aim.offset(4).dx, 0f)
+        repeat(100) { m.aim.learn(5, 0f, 2f) }
+        assertEquals("a wild miss is not aim", 0f, m.aim.offset(5).dy, 0f)
+        val back = LearnedModel.fromJson(JSONObject(m.toJson().toString()))
+        assertEquals(0.2f, back.aim.offset(2).dy, 0.01f)
+        back.clear()
+        assertEquals(0, back.aim.samples)
+        // A file saved before aim existed still loads.
+        assertEquals(0, LearnedModel.fromJson(JSONObject("{\"languages\":{}}")).aim.samples)
+    }
+
+    @Test
+    fun unlearnTakesBackOneLearn() {
+        val m = LearnedModel()
+        m.learn("en", "i", "hav")
+        m.unlearn("en", "i", "hav")
+        assertEquals(0, m.count("en", "hav"))
+        assertEquals(0, m.pair("en", "i", "hav"))
     }
 }

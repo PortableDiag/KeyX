@@ -90,8 +90,8 @@ class Dictionary(entries: List<Pair<String, Int>>) {
     /** The [n] most frequent words, for predictions with no context at all. */
     fun top(n: Int): List<Entry> = topWords.take(n)
 
-    /** The [n] commonest words, past the [top] list's cap; sorts the whole list, so call it once. */
-    fun ranked(n: Int): List<Entry> = if (n <= TOP) top(n) else sorted.sortedByDescending { it.count }.take(n)
+    /** The [RANKED] commonest words in lowercase, in order. Built with the pack, off the main thread. */
+    val ranked: List<String> = sorted.sortedByDescending { it.count }.take(RANKED).map { it.lower }
 
     private val topWords: List<Entry> by lazy { sorted.sortedByDescending { it.count }.take(TOP) }
 
@@ -107,6 +107,7 @@ class Dictionary(entries: List<Pair<String, Int>>) {
 
     companion object {
         private const val TOP = 64
+        const val RANKED = 2000
         private const val SHORT_PREFIX_KEEP = 16
 
         fun parse(reader: BufferedReader): Dictionary {

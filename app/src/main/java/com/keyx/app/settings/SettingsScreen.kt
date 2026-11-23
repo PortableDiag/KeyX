@@ -60,6 +60,7 @@ private val SWITCH_LABELS = mapOf(
     "emoji_predictions" to ("Emoji predictions" to "\"pizza\" offers 🍕"),
     "two_suggestion_rows" to ("Two rows of suggestions" to "Six words instead of three, in the same height"),
     "word_grid" to ("Word grid button" to "A button at the strip's right turns the keys into a grid of whole words"),
+    "learn_aim" to ("Learn my aim" to "Shifts the keys to where your fingers really land"),
     "swipe" to ("Swipe typing" to "Draw a word across the letters"),
     "auto_caps" to ("Auto-capitalize" to "Capital at the start of a sentence"),
     "double_space_period" to ("Double-space period" to "Two spaces type \". \""),
@@ -204,6 +205,13 @@ fun SettingsScreen(data: KeyXData, onEditLayout: (String) -> Unit, onEditTheme: 
         for ((lang, c) in counts) {
             Text("$lang: ${c.first} words, ${c.second} word pairs", style = MaterialTheme.typography.bodyMedium)
         }
+        val aim = remember(stats) { data.learned.aim.samples to data.learned.aim.average() }
+        Text(
+            if (aim.first == 0) "Aim: nothing yet" else "Aim: last ${aim.first} letters, landing " +
+                "${Math.abs(aim.second.dx * 100).toInt()}% of a key ${if (aim.second.dx < 0) "left" else "right"}, " +
+                "${Math.abs(aim.second.dy * 100).toInt()}% ${if (aim.second.dy < 0) "high" else "low"}",
+            style = MaterialTheme.typography.bodyMedium,
+        )
         Text("Never learned: password fields and incognito fields. Stored encrypted with a key held by Android Keystore.",
             style = MaterialTheme.typography.bodySmall)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -218,14 +226,14 @@ fun SettingsScreen(data: KeyXData, onEditLayout: (String) -> Unit, onEditTheme: 
         Section("About")
         Text("KeyX ${BuildConfig.VERSION_NAME}" + if (BuildConfig.DEBUG) " (debug)" else "")
         Text("Word frequencies: FrequencyWords by Hermit Dave (OpenSubtitles 2018), CC BY-SA 4.0. " +
-            "Emoji: Unicode emoji-test 15.1.", style = MaterialTheme.typography.bodySmall)
+            "Word pairs: Tatoeba, CC BY 2.0. Emoji: Unicode emoji-test 15.1.", style = MaterialTheme.typography.bodySmall)
     }
 
     if (confirmReset) {
         AlertDialog(
             onDismissRequest = { confirmReset = false },
             title = { Text("Reset learning?") },
-            text = { Text("Every learned word, word pair and recent emoji is deleted, with the key that encrypted them. This cannot be undone.") },
+            text = { Text("Every learned word, word pair, your aim and recent emoji is deleted, with the key that encrypted them. This cannot be undone.") },
             confirmButton = {
                 TextButton(onClick = {
                     data.resetLearning()

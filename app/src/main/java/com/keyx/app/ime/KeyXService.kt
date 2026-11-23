@@ -122,6 +122,7 @@ class KeyXService : InputMethodService(), KeyboardActions {
         engine.options = settings.engineOptions
         v.theme = data.theme(settings.theme)
         v.swipeTyping = settings.swipe
+        v.aim = data.learned.aim.takeIf { settings.learnAim }
         v.keyPopups = settings.keyPopup
         v.cursorControl = settings.cursorControl
         v.quickDelete = settings.quickDelete
@@ -156,8 +157,11 @@ class KeyXService : InputMethodService(), KeyboardActions {
         data.dictionary(layout.dictionary) { dict ->
             if (dict == null || settings.currentLanguage != layout.id) return@dictionary
             dictionary = dict
-            engine.suggester = Suggester(layout.learning, dict, data.learned, KeyGrid(layout.rows), data.emojiPredictor)
-            engine.onLanguageChanged()
+            data.wordPairs(layout.learning) { pairs ->
+                if (settings.currentLanguage != layout.id) return@wordPairs
+                engine.suggester = Suggester(layout.learning, dict, data.learned, KeyGrid(layout.rows), data.emojiPredictor, pairs)
+                engine.onLanguageChanged()
+            }
         }
     }
 
@@ -182,8 +186,8 @@ class KeyXService : InputMethodService(), KeyboardActions {
 
     override fun onChar(text: String, touch: Touch?) = engine.onText(text, touch)
 
-    override fun onSpace() {
-        engine.onSpace()
+    override fun onSpace(touch: Touch?) {
+        engine.onSpace(touch)
         if (page == Page.SYMBOLS || page == Page.SYMBOLS_MORE) setPage(Page.LETTERS)
     }
 

@@ -552,4 +552,49 @@ class InputEngineTest {
         engine.onSpace()
         assertEquals("The ", ed.toString())
     }
+
+    @Test
+    fun aStraySpaceInsideAWordIsTakenOutAndBackspacePutsItBack() {
+        type("i hav e ")
+        assertEquals("I have ", ed.toString())
+        assertEquals(0, learned.count("en", "e"))
+        assertEquals(1, learned.count("en", "have"))
+        engine.onBackspace()
+        assertTrue(ed.toString(), ed.toString().endsWith(" e"))
+        engine.onSpace()
+        assertTrue("not joined again: $ed", ed.toString().endsWith(" e "))
+    }
+
+    @Test
+    fun tappingTheRejoinedWordInTheStripWritesItOnce() {
+        type("i hav e")
+        val pick = engine.strip.center!!
+        assertEquals("have", pick.text)
+        engine.onPick(pick)
+        assertEquals("I have ", ed.toString())
+    }
+
+    @Test
+    fun aimIsLearnedFromWordsThatStandAndNotFromOnesTakenBack() {
+        fun low(w: String) = w.forEach { engine.onText(it.toString(), Touch(0.1f, 0.2f, zone = 2)) }
+        low("hello"); engine.onSpace()
+        assertEquals("not until the next word", 0, learned.aim.samples)
+        low("there"); engine.onSpace()
+        assertEquals(5, learned.aim.samples)
+        engine.onBackspace()
+        low("x"); engine.onSpace()
+        assertEquals("the erased-into word taught nothing", 5, learned.aim.samples)
+        assertEquals(0.2f, learned.aim.average().dy, 0.01f)
+    }
+
+    @Test
+    fun passwordAndIncognitoFieldsTeachNoAim() {
+        engine.startInput(FieldPolicy.from(InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD, 0))
+        for (w in listOf("hello", "there", "again")) {
+            w.forEach { engine.onText(it.toString(), Touch(0.1f, 0.2f, zone = 2)) }
+            engine.onSpace()
+        }
+        engine.onEnter()
+        assertEquals(0, learned.aim.samples)
+    }
 }

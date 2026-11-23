@@ -24,6 +24,9 @@ class LearnedModel {
 
     val isEmpty: Boolean get() = words.values.all { it.isEmpty() } && blocked.values.all { it.isEmpty() }
 
+    /** Where the operator's finger lands; saved, sealed and reset with the words. */
+    val aim = AimModel()
+
     /** Bumped on every change, so anything cached from the model knows it is stale. */
     var version = 0L
         private set
@@ -107,6 +110,20 @@ class LearnedModel {
         words.clear()
         pairs.clear()
         blocked.clear()
+        aim.clear()
+    }
+
+    /** Takes back one [learn]: the word turned out to be half of another. */
+    fun unlearn(language: String, previous: String?, word: String, weight: Int = 1) {
+        val lower = word.lowercase()
+        val forms = words[language]?.get(lower) ?: return
+        version++
+        val left = (forms[word] ?: return) - weight
+        if (left > 0) forms[word] = left else forms.remove(word)
+        if (forms.isEmpty()) words[language]?.remove(lower)
+        val next = pairs[language]?.get(previous?.lowercase() ?: return) ?: return
+        val p = (next[lower] ?: return) - weight
+        if (p > 0) next[lower] = p else next.remove(lower)
     }
 
     /**
@@ -153,7 +170,9 @@ class LearnedModel {
             blocked[lang]?.sorted()?.forEach { x.put(it) }
             langs.put(lang, JSONObject().put("words", u).put("pairs", b).put("blocked", x))
         }
-        return root.put("languages", langs)
+        root.put("languages", langs)
+        if (aim.samples > 0) root.put("aim", aim.toJson())
+        return root
     }
 
     private fun prune(language: String) {
@@ -184,6 +203,7 @@ class LearnedModel {
 
         fun fromJson(json: JSONObject): LearnedModel {
             val model = LearnedModel()
+            model.aim.load(json.optJSONArray("aim"))
             val langs = json.optJSONObject("languages") ?: return model
             for (lang in langs.keys()) {
                 val l = langs.getJSONObject(lang)

@@ -9,6 +9,7 @@ import com.keyx.app.layout.SymbolSet
 import com.keyx.app.predict.Dictionary
 import com.keyx.app.predict.EmojiPredictor
 import com.keyx.app.predict.LearnedModel
+import com.keyx.app.predict.WordPairs
 import com.keyx.app.theme.KeyboardTheme
 import java.io.File
 import java.util.concurrent.Executors
@@ -125,6 +126,16 @@ class KeyXData private constructor(private val context: Context) {
                 }
                 done(d)
             }
+        }
+    }
+
+    /** The bundled word pairs of a language; empty when none ship. Read off the main thread. */
+    fun wordPairs(language: String, done: (WordPairs) -> Unit) {
+        io.execute {
+            val p = runCatching {
+                context.assets.open("pairs/$language.tsv").bufferedReader().use { WordPairs.parse(it) }
+            }.getOrDefault(WordPairs.EMPTY)
+            main.post { done(p) }
         }
     }
 

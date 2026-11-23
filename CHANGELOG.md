@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.23 — 2026-11-22
+
+- **Learns your aim:** the letter keys shift to where your fingers really land,
+  per half of each row. Only averages are kept, sealed and reset with the words;
+  never from password or incognito fields. Settings: *Learn my aim*.
+- **Stray spaces:** "hav e" -> "have"; a space touched high fills in the letter
+  above it ("belie e" -> "believe"). Backspace puts it back.
+- **Context from the start:** 40,000 bundled word pairs each for English, German
+  and Russian (Tatoeba, CC BY 2.0) help pick between likely words.
+- **Fixed:** in 0.2.22 the first word after the keyboard started stuttered (about
+  50 ms on a desktop); the word ranking is built with the dictionary now.
+- Simulated sloppy typing on held-out sentences, 1,479 words: 28.5% wrong going by keys
+  alone, 22.2% with touch, 15.5% with aim and pairs (a thumb missing right and
+  low). Clean typing unchanged; no false joins in 16,858 real word pairs.
+
 ## 0.2.22 — 2026-11-22
 
 - **Where you touch a key counts:** taps near the edge of a key count toward the

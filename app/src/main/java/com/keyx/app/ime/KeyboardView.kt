@@ -2,6 +2,7 @@ package com.keyx.app.ime
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
@@ -19,6 +20,7 @@ import android.widget.OverScroller
 import com.keyx.app.layout.Key
 import com.keyx.app.layout.KeyRow
 import com.keyx.app.layout.KeyType
+import com.keyx.app.predict.AimModel
 import com.keyx.app.predict.GestureDecoder
 import com.keyx.app.predict.Strip
 import com.keyx.app.predict.Suggestion
@@ -33,7 +35,8 @@ import kotlin.math.min
 interface KeyboardActions {
     /** [touch] is where on the key the finger landed, for the touch model; null when not from a key tap. */
     fun onChar(text: String, touch: Touch? = null)
-    fun onSpace()
+    /** [touch] is where on the space bar the finger landed. */
+    fun onSpace(touch: Touch? = null)
     fun onLanguageSwipe(forward: Boolean)
     fun onCursorSteps(steps: Int)
     fun onBackspace()
@@ -179,6 +182,29 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         }
         keysBottom = y
     }
+
+    /** The operator's learned aim; null when it is turned off. */
+    var aim: AimModel? = null
+    private var aimZone = -1
+    private var aimOffset = Touch(0f, 0f)
+
+    /**
+     * The key meant by a touch on letter [hit], with the operator's usual miss taken out.
+     * Letters only, in portrait: space, backspace and the rest stay exactly where drawn.
+     */
+    private fun aimed(hit: Box, x: Float, y: Float): Box {
+        aimZone = -1
+        aimOffset = Touch(0f, 0f)
+        val model = aim ?: return hit
+        if (!lettersPage || !isLetter(hit) || resources.configuration.orientation != Configuration.ORIENTATION_PORTRAIT) return hit
+        val firstRow = boxes.first { isLetter(it) }.row
+        aimZone = AimModel.zone(hit.row - firstRow, x > width / 2f)
+        aimOffset = model.offset(aimZone)
+        val meant = boxAt(x - aimOffset.dx * hit.rect.width(), y - aimOffset.dy * hit.rect.height())
+        return meant?.takeIf { isLetter(it) } ?: hit
+    }
+
+    private fun isLetter(b: Box) = b.key.type == KeyType.CHAR && b.key.text.length == 1 && b.key.text[0].isLetter()
 
     /** The space bar, when a touch on the comma or period next to it only just missed it. */
     private fun spaceBeside(b: Box, x: Float): Box? {
@@ -1072,7 +1098,8 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
     }
 
     private fun keyDown(x: Float, y: Float) {
-        val b = boxAt(x, y)?.let { spaceBeside(it, x) ?: it } ?: run { mode = Mode.NONE; return }
+        val hit = boxAt(x, y)?.let { spaceBeside(it, x) ?: it } ?: run { mode = Mode.NONE; return }
+        val b = aimed(hit, x, y)
         pressedBox = b
         actions.onKeyDown()
         when (b.key.type) {
@@ -1160,7 +1187,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
             }
             Mode.SPACE -> when (SpaceGesture.onRelease(x - downX, y - downY, SystemClock.uptimeMillis() - downTime,
                 false, keyUnit, languageCount)) {
-                SpaceGesture.Result.SPACE -> actions.onSpace()
+                SpaceGesture.Result.SPACE -> actions.onSpace(b?.takeIf { it.key.type == KeyType.SPACE }?.let { touchOn(it) })
                 SpaceGesture.Result.LANGUAGE_NEXT -> actions.onLanguageSwipe(true)
                 SpaceGesture.Result.LANGUAGE_PREVIOUS -> actions.onLanguageSwipe(false)
                 SpaceGesture.Result.NONE -> Unit
@@ -1192,7 +1219,9 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
     private fun touchOn(b: Box): Touch? {
         val r = b.rect
         if (r.width() <= 0f || r.height() <= 0f) return null
-        return Touch((downX - r.centerX()) / r.width(), (downY - r.centerY()) / r.height())
+        if (!isLetter(b)) return Touch((downX - r.centerX()) / r.width(), (downY - r.centerY()) / r.height())
+        val o = aimOffset
+        return Touch((downX - r.centerX()) / r.width() - o.dx, (downY - r.centerY()) / r.height() - o.dy, aimZone, o.dx, o.dy)
     }
 
     private fun stripUp(x: Float, y: Float) {
