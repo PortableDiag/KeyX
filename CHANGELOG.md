@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.24 — 2026-11-26
+
+- **Emoji search:** 🔍 in the emoji panel. The letters type the query and the
+  strip shows what matches, by name and by the prediction words: `pizz` -> 🍕,
+  `lol` -> 😂, `red heart` -> ❤️. Every word has to match; whole words and
+  short names rank first. Empty, it shows the recents. Tapping one inserts it
+  (replacing a word being typed, as from the panel) and the search stays open;
+  ‹, the query box or enter go back to the panel.
+
 ## 0.2.23 — 2026-11-22
 
 - **Learns your aim:** the letter keys shift to where your fingers really land,

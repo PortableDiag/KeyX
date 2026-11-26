@@ -94,6 +94,7 @@ class KeyXService : InputMethodService(), KeyboardActions {
         engine.editor = ConnectionEditor()
         applySettings()
         view?.panel = Panel.KEYS
+        view?.emojiQuery = null
         engine.startInput(policy)
         view?.enterLabel = enterLabel(info)
         captureClip(fromStart = true)
@@ -184,9 +185,13 @@ class KeyXService : InputMethodService(), KeyboardActions {
 
     // ---- KeyboardActions ------------------------------------------------------
 
-    override fun onChar(text: String, touch: Touch?) = engine.onText(text, touch)
+    override fun onChar(text: String, touch: Touch?) {
+        if (searchType { (it + text.lowercase()).take(MAX_QUERY) }) return
+        engine.onText(text, touch)
+    }
 
     override fun onSpace(touch: Touch?) {
+        if (searchType { if (it.isEmpty() || it.endsWith(" ")) it else "$it " }) return
         engine.onSpace(touch)
         if (page == Page.SYMBOLS || page == Page.SYMBOLS_MORE) setPage(Page.LETTERS)
     }
@@ -207,13 +212,52 @@ class KeyXService : InputMethodService(), KeyboardActions {
         repeat(kotlin.math.abs(steps)) { sendDownUpKeyEvents(code) }
     }
 
-    override fun onBackspace() = engine.onBackspace()
+    override fun onBackspace() {
+        if (searchType { it.dropLast(1) }) return
+        engine.onBackspace()
+    }
 
-    override fun onDeleteWord() = engine.onDeleteWord()
+    override fun onDeleteWord() {
+        if (searchType { it.trimEnd().dropLastWhile { c -> c != ' ' } }) return
+        engine.onDeleteWord()
+    }
 
-    override fun onEnter() = engine.onEnter()
+    override fun onEnter() {
+        if (view?.emojiQuery != null) return onEmojiSearch(false)
+        engine.onEnter()
+    }
 
-    override fun onShift(doubleTap: Boolean) = engine.onShift(doubleTap)
+    override fun onShift(doubleTap: Boolean) {
+        // Shift would recase the word being typed underneath; the query is lowercase anyway.
+        if (view?.emojiQuery != null) return
+        engine.onShift(doubleTap)
+    }
+
+    /** While the emoji search is open, the keys edit its query instead of the field. */
+    private inline fun searchType(edit: (String) -> String): Boolean {
+        val v = view ?: return false
+        val q = v.emojiQuery ?: return false
+        val next = edit(q)
+        v.emojiQuery = next
+        v.emojiResults = if (next.isBlank()) data.emojiRecents() else data.emojiSearch.search(next)
+        return true
+    }
+
+    override fun onEmojiSearch(open: Boolean) {
+        val v = view ?: return
+        if (!open) {
+            v.emojiQuery = null
+            render()
+            onTool(Tool.EMOJI)
+            return
+        }
+        if (page != Page.LETTERS) setPage(Page.LETTERS)
+        v.panel = Panel.KEYS
+        v.emojiQuery = ""
+        // The query is lowercase; auto-caps' capital keys would say otherwise.
+        v.shift = Shift.OFF
+        v.emojiResults = data.emojiRecents()
+    }
 
     override fun onPageKey(type: KeyType) = setPage(
         when (type) {
@@ -271,6 +315,10 @@ class KeyXService : InputMethodService(), KeyboardActions {
     override fun onPick(s: Suggestion) = engine.onPick(s)
 
     override fun onPanel(panel: Panel) {
+        if (panel != Panel.KEYS && view?.emojiQuery != null) {
+            view?.emojiQuery = null
+            render()
+        }
         engine.wordGrid = panel == Panel.WORDS
     }
 
@@ -283,6 +331,7 @@ class KeyXService : InputMethodService(), KeyboardActions {
     }
 
     override fun onGesture(trace: List<GestureDecoder.Point>) {
+        if (view?.emojiQuery != null) return
         val d = decoder ?: return
         val dict = dictionary ?: return
         val lang = engine.suggester?.language ?: return
@@ -293,6 +342,8 @@ class KeyXService : InputMethodService(), KeyboardActions {
     override fun onEmoji(e: String) {
         engine.onEmoji(e)
         data.useEmoji(e)
+        // The search stays open for another; an empty one shows the recents, now with this first.
+        view?.let { v -> if (v.emojiQuery?.isBlank() == true) v.emojiResults = data.emojiRecents() }
     }
 
     override fun onTool(tool: Tool) {
@@ -419,6 +470,7 @@ class KeyXService : InputMethodService(), KeyboardActions {
     private companion object {
         const val CLIPX = "com.clipx.app"
         const val MAX_CLIPS = 10
+        const val MAX_QUERY = 40
         const val CHIP_MS = 60_000L
         const val EXTRA_IS_SENSITIVE = "android.content.extra.IS_SENSITIVE"
     }

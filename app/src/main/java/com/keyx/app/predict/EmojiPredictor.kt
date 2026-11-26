@@ -3,7 +3,7 @@ package com.keyx.app.predict
 import java.io.BufferedReader
 
 /** English words that suggest an emoji ("pizza" -> 🍕), from assets/emoji/predict.tsv. */
-class EmojiPredictor(private val map: Map<String, String>) {
+class EmojiPredictor(val map: Map<String, String>) {
     fun forWord(word: String): String? = map[word.lowercase()]
 
     companion object {

@@ -8,6 +8,7 @@ import com.keyx.app.layout.LanguageLayout
 import com.keyx.app.layout.SymbolSet
 import com.keyx.app.predict.Dictionary
 import com.keyx.app.predict.EmojiPredictor
+import com.keyx.app.predict.EmojiSearch
 import com.keyx.app.predict.LearnedModel
 import com.keyx.app.predict.WordPairs
 import com.keyx.app.theme.KeyboardTheme
@@ -143,12 +144,17 @@ class KeyXData private constructor(private val context: Context) {
         context.assets.open("emoji/predict.tsv").bufferedReader().use { EmojiPredictor.parse(it) }
     }
 
-    /** (group, emoji) in Unicode order. */
-    val emoji: List<Pair<String, String>> by lazy {
+    /** (group, emoji, name) in Unicode order. */
+    private val emojiRows: List<List<String>> by lazy {
         context.assets.open("emoji/emoji.tsv").bufferedReader().useLines { lines ->
-            lines.mapNotNull { l -> l.split('\t').takeIf { it.size >= 2 }?.let { it[0] to it[1] } }.toList()
+            lines.map { it.split('\t') }.filter { it.size >= 3 }.toList()
         }
     }
+
+    /** (group, emoji) in Unicode order. */
+    val emoji: List<Pair<String, String>> by lazy { emojiRows.map { it[0] to it[1] } }
+
+    val emojiSearch: EmojiSearch by lazy { EmojiSearch(emojiRows.map { it[1] to it[2] }, emojiPredictor.map) }
 
     fun emojiRecents(): List<String> =
         prefs.getString(EMOJI_RECENTS, "").orEmpty().split(' ').filter { it.isNotBlank() }

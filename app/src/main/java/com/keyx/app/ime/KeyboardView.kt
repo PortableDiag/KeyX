@@ -52,6 +52,8 @@ interface KeyboardActions {
     fun onPasteClip(text: String)
     fun onGesture(trace: List<GestureDecoder.Point>)
     fun onEmoji(e: String)
+    /** Opens (true) or closes the emoji search: the letters type the query, the strip shows what it finds. */
+    fun onEmojiSearch(open: Boolean)
     fun onTool(tool: Tool)
     fun onOpenClipX()
     fun onSaveToClipX(text: String)
@@ -104,6 +106,11 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         }
     var emojiGroups: List<Pair<String, List<String>>> = emptyList()
         set(v) { field = v; emojiLayoutDirty = true; invalidate() }
+    /** The emoji search being typed; null when there is none. The strip is its results while it is open. */
+    var emojiQuery: String? = null
+        set(v) { field = v; toolbarOpen = false; confirmRemove = null; invalidate() }
+    var emojiResults: List<String> = emptyList()
+        set(v) { field = v; invalidate() }
     var clips: List<String> = emptyList()
         set(v) { field = v; invalidate() }
     var clipXInstalled = false
@@ -555,7 +562,52 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         }
     }
 
+    // ---- emoji search, in the strip ----------------------------------------------
+
+    /** The query box, from the back button to here; the results fill the rest. */
+    private fun searchBoxRight() = stripH + width * 0.32f
+
+    private fun searchResultSlots(): List<RectF> {
+        val left = searchBoxRight()
+        val n = max(1, ((width - left) / (stripH * 0.95f)).toInt())
+        val w = (width - left) / n
+        return (0 until n).map { RectF(left + it * w, 0f, left + (it + 1) * w, stripH) }
+    }
+
+    private fun drawSearchStrip(canvas: Canvas, t: KeyboardTheme, query: String) {
+        // Back to the emoji panel: a left-pointing chevron in the toolbar's circle.
+        fill.color = t.keyPressed
+        canvas.drawCircle(stripH / 2, stripH / 2, stripH * 0.3f, fill)
+        chevron(canvas, stripH / 2, stripH / 2, stripH * 0.12f, KeyEvent.KEYCODE_DPAD_LEFT, t.functionText)
+        tmp.set(stripH, stripH * 0.14f, searchBoxRight() - padX, stripH * 0.86f)
+        fill.color = t.keyFace
+        if ((t.keyFace ushr 24) != 0) canvas.drawRoundRect(tmp, corner, corner, fill)
+        outline(canvas, t, RectF(tmp), t.accent)
+        val size = stripH * 0.36f
+        text.textSize = size
+        val box = RectF(tmp)
+        val shown = if (query.isEmpty()) "🔍 search emoji" else TextUtils.ellipsize("$query▏", text, box.width() - 12 * dp, TextUtils.TruncateAt.START).toString()
+        text.textAlign = Paint.Align.LEFT
+        text.color = if (query.isEmpty()) t.hintText else t.candidateText
+        val fm = text.fontMetrics
+        canvas.drawText(shown, box.left + 6 * dp, box.centerY() - (fm.ascent + fm.descent) / 2f, text)
+        text.textAlign = Paint.Align.CENTER
+        val slots = searchResultSlots()
+        if (query.isNotEmpty() && emojiResults.isEmpty()) {
+            centerText(canvas, "no emoji", (slots.first().left + width) / 2f, stripH / 2, stripH * 0.32f, t.hintText)
+        }
+        emojiResults.take(slots.size).forEachIndexed { i, e ->
+            val r = slots[i]
+            if (pressedStrip == SEARCH_RESULT + i) {
+                fill.color = t.keyPressed
+                canvas.drawRect(r, fill)
+            }
+            centerText(canvas, e, r.centerX(), r.centerY(), stripH * 0.52f, t.keyText)
+        }
+    }
+
     private fun drawStrip(canvas: Canvas, t: KeyboardTheme) {
+        emojiQuery?.let { drawSearchStrip(canvas, t, it); return }
         confirmRemove?.let { drawConfirm(canvas, t, it); return }
         // The toolbar toggle, SwiftKey's circle on the left.
         val r = stripH * 0.3f
@@ -813,13 +865,13 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
     }
 
     private fun controlLabels(): List<String> = when (panel) {
-        Panel.EMOJI -> listOf("ABC", " ", "⌫")
+        Panel.EMOJI -> listOf("ABC", "🔍", " ", "⌫")
         Panel.WORDS -> listOf("ABC", ",", " ", ".", "⌫", "↵")
         else -> clipControls()
     }
 
     private fun controlWeights(): List<Float>? = when (panel) {
-        Panel.EMOJI -> listOf(1.5f, 5f, 1.5f)
+        Panel.EMOJI -> listOf(1.5f, 1.2f, 3.8f, 1.5f)
         Panel.WORDS -> listOf(1.5f, 1f, 4f, 1f, 1.5f, 1.5f)
         else -> null
     }
@@ -836,6 +888,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
                 "↵" -> enterLabel?.let { centerText(canvas, it, r.centerX(), r.centerY(), r.height() * 0.27f, t.functionText) }
                     ?: drawEnter(canvas, t, r.centerX(), r.centerY(), r.height() * 0.3f)
                 ",", "." -> centerText(canvas, labels[i], r.centerX(), r.centerY(), r.height() * 0.4f, t.keyText)
+                "🔍" -> centerText(canvas, labels[i], r.centerX(), r.centerY(), r.height() * 0.36f, t.functionText)
                 else -> centerText(canvas, labels[i], r.centerX(), r.centerY(), r.height() * 0.28f, t.functionText)
             }
         }
@@ -1074,6 +1127,16 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
             confirmRemove = null
         }
         when {
+            y < stripH && emojiQuery != null -> {
+                mode = Mode.STRIP
+                pressedStrip = when {
+                    x < stripH -> -2
+                    x < searchBoxRight() -> SEARCH_BOX
+                    else -> searchResultSlots().indexOfFirst { it.contains(x, y) }
+                        .takeIf { it in emojiResults.indices }?.let { SEARCH_RESULT + it } ?: -1
+                }
+                if (pressedStrip >= SEARCH_RESULT) actions.onKeyDown()
+            }
             y < stripH -> {
                 mode = Mode.STRIP
                 pressedStrip = when {
@@ -1132,7 +1195,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
                 // A swipe has left its key; a fast, sloppy tap has only smeared on it.
                 val far = hypot(x - downX, y - downY) > keyUnit * 0.6f && !b.rect.contains(x, y)
                 val letter = b.key.type == KeyType.CHAR && b.key.text.length == 1 && b.key.text[0].isLetter()
-                if (far && swipeTyping && lettersPage && letter) {
+                if (far && swipeTyping && lettersPage && letter && emojiQuery == null) {
                     handler.removeCallbacks(longPress)
                     mode = Mode.GESTURE
                     trail.clear()
@@ -1225,6 +1288,14 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
     }
 
     private fun stripUp(x: Float, y: Float) {
+        if (emojiQuery != null) {
+            if (y > stripH * 1.5f) return
+            when {
+                pressedStrip == -2 || pressedStrip == SEARCH_BOX -> actions.onEmojiSearch(false)
+                pressedStrip >= SEARCH_RESULT -> emojiResults.getOrNull(pressedStrip - SEARCH_RESULT)?.let { actions.onEmoji(it) }
+            }
+            return
+        }
         val word = confirmRemove
         if (word != null) {
             if (y > stripH * 1.5f) return
@@ -1338,6 +1409,7 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
     private fun controlTap(i: Int) {
         when (controlLabels().getOrNull(i)) {
             "ABC" -> panel = Panel.KEYS
+            "🔍" -> actions.onEmojiSearch(true)
             " " -> actions.onSpace()
             ",", "." -> actions.onChar(controlLabels()[i])
             "↵" -> actions.onEnter()
@@ -1382,6 +1454,9 @@ class KeyboardView(context: Context, private val actions: KeyboardActions) : Vie
         const val CONFIRM_REMOVE = 10
         /** [pressedStrip] for the word-grid button. */
         const val GRID_BUTTON = -3
+        /** [pressedStrip] for the emoji search's query box, and its first result. */
+        const val SEARCH_BOX = -4
+        const val SEARCH_RESULT = 100
         const val STRIP_LONG_PRESS_MS = 500L
         /** Held backspace: this many single letters after the 400 ms wait, then a word per [HOLD_WORD_MS]. */
         const val HOLD_LETTERS = 3
