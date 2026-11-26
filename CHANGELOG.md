@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.25 — 2026-11-26
+
+- **Space slips fixed on a square hit:** b, n, v, c or m hit for the space bar
+  between two everyday words is now read as a space wherever on the key it was
+  touched, not only low: `wantbto` -> `want to`. Before, it was only offered in
+  the strip and space kept the joined word. Of 2,043 such slips, 1,773 are now
+  corrected on space (was 0); most of the rest have a one-letter half (`ibam`),
+  which still needs a low touch and is offered.
+- **Rarer words offered:** a split into a listed but less common word is
+  suggested, first in the strip (`inbboston` -> `in Boston`), not forced.
+- Cost: 156 of 33,814 real words missing from the list (`catcall`, `bemused`)
+  are split, was 68. Backspace right after puts the word back.
+
 ## 0.2.24 — 2026-11-26
 
 - **Emoji search:** 🔍 in the emoji panel. The letters type the query and the

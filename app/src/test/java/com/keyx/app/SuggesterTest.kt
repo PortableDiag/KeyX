@@ -188,8 +188,21 @@ class SuggesterTest {
         assertEquals("this is", touched("thisnis", 4, low))
         assertEquals("This is", touched("Thisnis", 4, low))
         assertEquals("want to", touched("wantbto", 4, low))
-        // Hit squarely it is offered, not forced.
-        assertTrue(touched("wantbto", 4, center).let { it == null || ' ' !in it })
+        // Hit squarely too: between two everyday words a letter over the space bar is the space.
+        assertEquals("want to", touched("wantbto", 4, center))
+        assertEquals("going to", touched("goingnto", 5, center))
+        assertEquals("this is", touched("thisvis", 4, center))
+        // A one-letter half needs the low touch; squarely hit, it is only offered.
+        assertTrue(touched("inborn", 1, center).let { it == null || ' ' !in it })
+        // Touched high, it was the letter.
+        assertNull(touched("wantbto", 4, Touch(0f, -0.4f)))
+    }
+
+    @Test
+    fun aSplitIntoARarerWordIsOfferedNotForced() {
+        val strip = TestData.suggester().forWord("inbboston", null, autocorrect = true, emojiOn = false)
+        assertTrue(strip.all.any { it.text == "in Boston" })
+        assertTrue(strip.autocorrect.let { it == null || ' ' !in it })
     }
 
     @Test

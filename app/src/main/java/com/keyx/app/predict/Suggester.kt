@@ -109,6 +109,13 @@ class Suggester(
             .map { matchCase(typed, it.first) }
             .filter { it != correction && !it.equals(typed, true) }
             .toMutableList()
+        // A word that isn't one, read as two with a slip for the space between: never crowded out of the strip.
+        if (!known) {
+            fixes.firstOrNull { ' ' in it.form }?.let { f ->
+                val split = matchCase(typed, f.form)
+                if (split != correction && others.remove(split)) others.add(0, split)
+            }
+        }
         // An acronym space won't force ("ok" -> "OK") is still one tap away, after the top completion.
         val acronym = if (known && correction == null) caseForm(typed)?.takeIf { it.all { c -> c.isUpperCase() } } else null
         if (acronym != null) others.add(min(1, others.size), acronym)
@@ -211,17 +218,21 @@ class Suggester(
     /**
      * Two words run together: a thumb aimed at space that landed on a letter above it
      * ("thisnis" -> "this is"), or space missed altogether ("ofthe" -> "of the").
-     * Real words missing from the list look just like this ("windburn", "inpatient"),
-     * so a split is forced only when the letter was touched low, toward the space bar,
-     * or when both halves are among the commonest words. The rest are one tap away.
+     * Real words missing from the list look just like this ("windburn", "inpatient"):
+     * a letter over the space bar between two everyday words of two letters or more is
+     * forced (about 0.4% of unlisted dictionary words read that way, mostly rare ones);
+     * a one-letter half ("inborn" -> "I born") only when the letter was touched low,
+     * toward the space bar. Halves that are listed but not everyday are offered, never forced.
      */
     private fun splits(lower: String, previous: String?, touches: List<Touch?>?, out: MutableList<Fix>) {
         if (lower.length < 3 || !lower.all { it.isLetter() || it == '\'' }) return
-        fun pair(left: String, right: String, cost: Double, force: Boolean) {
-            if (left !in everyday || right !in everyday) return
+        fun pair(left: String, right: String, cost: Double, force: Boolean, rareHalves: Boolean = false) {
+            val both = left in everyday && right in everyday
+            if (!both && !rareHalves) return
             val l = splitForm(left) ?: return
             val r = splitForm(right) ?: return
-            out += Fix("$l $r", min(prior(l, previous), prior(r, l)) - EDIT_WEIGHT * cost - SPLIT_PENALTY, cost, force)
+            val rare = if (both) 0.0 else RARE_HALF
+            out += Fix("$l $r", min(prior(l, previous), prior(r, l)) - EDIT_WEIGHT * cost - SPLIT_PENALTY - rare, cost, force && both)
         }
         for (i in 1 until lower.length - 1) {
             if (lower[i] !in grid.nearSpace) continue
@@ -230,8 +241,9 @@ class Suggester(
             val low = t != null && t.dy > LOW_TOUCH
             if (t != null && t.dy < -LOW_TOUCH) continue
             // A one-letter half ("inthe" -> "I the") is the less likely reading of a slip.
-            val oneLetter = if (i == 1 || i == lower.length - 2) ONE_LETTER_HALF else 0.0
-            pair(lower.substring(0, i), lower.substring(i + 1), (if (low) SPACE_SLIP_LOW else SPACE_SLIP) + oneLetter, force = low)
+            val oneLetter = i == 1 || i == lower.length - 2
+            val cost = (if (low) SPACE_SLIP_LOW else SPACE_SLIP) + if (oneLetter) ONE_LETTER_HALF else 0.0
+            pair(lower.substring(0, i), lower.substring(i + 1), cost, force = low || !oneLetter, rareHalves = true)
         }
         for (i in 1 until lower.length) {
             val left = lower.substring(0, i)
@@ -444,6 +456,8 @@ class Suggester(
         private const val MISSED_SPACE = 0.4
         private const val ONE_LETTER_HALF = 0.5
         private const val SPLIT_PENALTY = 1.5
+        /** A split into a listed but not everyday word ("in boston"): offered, ranked lower. */
+        private const val RARE_HALF = 1.0
         /** Words this high in the list, run together with no space, are taken apart by the space bar. */
         private const val COMMON = 300
         /** A known word is corrected only by one touch near the edge, below the cost of a centered one ([NEIGHBOR]). */
